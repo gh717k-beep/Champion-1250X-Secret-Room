@@ -1,66 +1,176 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-const tips = [
-  "입력한 이름으로 환영 메시지를 바꿔보세요.",
-  "버튼을 누르면 클릭 수가 증가합니다.",
-  "이 페이지는 브라우저에서 바로 실행됩니다.",
-];
+type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
 
-export default function Home() {
-  const [name, setName] = useState("코드");
-  const [count, setCount] = useState(0);
+const SLOT_LABELS: Record<Slot, string> = {
+  "weekday-16": "평일 16:00",
+  "weekday-18": "평일 18:00",
+  "weekend-12": "주말 12:00",
+  "weekend-14": "주말 14:00",
+  "weekend-16": "주말 16:00",
+};
 
-  const greeting = useMemo(() => {
-    return `${name}님, 브라우저에서 바로 실행되는 웹 페이지예요!`;
-  }, [name]);
+export default function ContestPage() {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [slot, setSlot] = useState<Slot>("weekday-16");
+  const [message, setMessage] = useState<string | null>(null);
+  const [count, setCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slot]);
+
+  async function fetchCount() {
+    try {
+      const res = await fetch(`/api/contest?slot=${encodeURIComponent(slot)}`);
+      if (!res.ok) return setCount(null);
+      const data = await res.json();
+      setCount(data.count ?? null);
+    } catch (e) {
+      setCount(null);
+    }
+  }
+
+  function cleanPhone(input: string) {
+    return input.replace(/[^0-9]/g, "");
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const cleaned = cleanPhone(phone);
+    if (!name.trim()) return setMessage("아이 이름을 입력하세요.");
+    if (cleaned.length < 8) return setMessage("유효한 전화번호를 입력하세요.");
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/contest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), phone: cleaned, slot }),
+      });
+      const data = await res.json();
+      if (res.status === 201) {
+        setMessage("응모가 완료되었습니다. 결과는 추첨 후 공개됩니다.");
+        setName("");
+        setPhone("");
+        fetchCount();
+      } else {
+        setMessage(data.error || "응모 중 오류가 발생했습니다.");
+      }
+    } catch (err) {
+      setMessage("서버와 통신할 수 없습니다.");
+    }
+    setLoading(false);
+  }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.2),_transparent_40%),linear-gradient(135deg,_#0f172a,_#111827)] px-4 py-16 text-slate-100 sm:px-6 lg:px-8">
-      <section className="mx-auto flex max-w-3xl flex-col gap-8 rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl shadow-black/30 backdrop-blur">
-        <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">
-            웹에서 구동하는 예제
-          </p>
-          <h1 className="text-4xl font-semibold sm:text-5xl">Secret Room</h1>
-          <p className="max-w-2xl text-lg leading-8 text-slate-300">
-            이 페이지는 React와 Next.js로 만든 간단한 웹 앱입니다.
-            입력창과 버튼을 조작해보면서 브라우저에서 바로 동작하는 코드를 확인해보세요.
-          </p>
-        </div>
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <div className="mx-auto max-w-2xl rounded-xl border bg-white p-6 shadow">
+        <h1 className="text-2xl font-semibold">비밀의 방 — 응모 페이지</h1>
+        <p className="mt-2 text-sm text-slate-600">전화번호당 1회 응모 가능. 당첨자 공개 시 아이 이름 가운데는 모자이크, 보호자 전화번호 뒷자리만 공개됩니다.</p>
 
-        <div className="flex flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/70 p-5 sm:flex-row">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-400"
-            placeholder="이름을 입력하세요"
-          />
-          <button
-            onClick={() => setCount((current) => current + 1)}
-            className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
-          >
-            클릭 수: {count}
-          </button>
-        </div>
+        <form className="mt-4 flex flex-col gap-3" onSubmit={submit}>
+          <label className="flex flex-col">
+            <span className="text-sm">아이 이름</span>
+            <input className="mt-1 rounded border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
 
-        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-5">
-          <p className="text-sm text-cyan-200">환영 메시지</p>
-          <p className="mt-2 text-xl font-medium">{greeting}</p>
-        </div>
+          <label className="flex flex-col">
+            <span className="text-sm">보호자 전화번호</span>
+            <input className="mt-1 rounded border px-3 py-2" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="숫자만 입력" />
+          </label>
 
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {tips.map((tip) => (
-            <li
-              key={tip}
-              className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300"
-            >
-              {tip}
-            </li>
-          ))}
-        </ul>
-      </section>
+          <label className="flex flex-col">
+            <span className="text-sm">응모 시간대 선택</span>
+            <select className="mt-1 rounded border px-3 py-2" value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
+              {Object.entries(SLOT_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-600">현재 응모 수: {count === null ? "불러오는 중..." : count}</div>
+            <button disabled={loading} className="ml-4 rounded bg-cyan-600 px-4 py-2 text-white">
+              {loading ? "응모중..." : "응모하기"}
+            </button>
+          </div>
+        </form>
+
+        {message && <div className="mt-4 rounded border px-4 py-3 text-sm">{message}</div>}
+
+        <div className="mt-6 border-t pt-4 text-sm text-slate-700">
+          <h2 className="font-medium">관리자용(간단)</h2>
+          <p className="mt-2">관리자는 아래에서 비밀키로 추첨을 실행할 수 있습니다. 배포시 `VERCEL_CONTEST_SECRET` 환경변수를 설정하세요.</p>
+          <AdminDraw />
+        </div>
+      </div>
     </main>
+  );
+}
+
+function AdminDraw() {
+  const [slot, setSlot] = useState<Slot>("weekday-16");
+  const [secret, setSecret] = useState("");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function runDraw(e?: React.FormEvent) {
+    e?.preventDefault();
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, { method: "POST" });
+      const data = await res.json();
+      setResult({ ok: res.ok, body: data });
+    } catch (err) {
+      setResult({ ok: false, body: { error: "서버 오류" } });
+    }
+    setLoading(false);
+  }
+
+  return (
+    <form className="mt-3 flex flex-col gap-2" onSubmit={runDraw}>
+      <select className="rounded border px-3 py-2" value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
+        {Object.entries(SLOT_LABELS).map(([k, v]) => (
+          <option key={k} value={k}>
+            {v}
+          </option>
+        ))}
+      </select>
+      <input className="rounded border px-3 py-2" placeholder="관리자 비밀키(환경변수 없으면 빈칸 허용)" value={secret} onChange={(e) => setSecret(e.target.value)} />
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={loading} className="rounded bg-amber-600 px-3 py-2 text-white">
+          {loading ? "추첨중..." : "추첨 실행"}
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-3">
+          {result.ok ? (
+            <div>
+              <div className="text-sm">당첨자 목록:</div>
+              <ul className="mt-2 list-disc pl-5">
+                {result.body.winners.map((w: any, i: number) => (
+                  <li key={i} className="text-sm">
+                    {w.maskedName} — {w.phoneTail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-sm text-red-600">{result.body?.error || "오류"}</div>
+          )}
+        </div>
+      )}
+    </form>
   );
 }
