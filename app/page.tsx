@@ -1,69 +1,66 @@
-import Image from "next/image";
+'use client';
+
+import { useMemo, useState } from "react";
+
+const tips = [
+  "입력한 이름으로 환영 메시지를 바꿔보세요.",
+  "버튼을 누르면 클릭 수가 증가합니다.",
+  "이 페이지는 브라우저에서 바로 실행됩니다.",
+];
 
 export default function Home() {
+  const [name, setName] = useState("코드");
+  const [count, setCount] = useState(0);
+
+  const greeting = useMemo(() => {
+    return `${name}님, 브라우저에서 바로 실행되는 웹 페이지예요!`;
+  }, [name]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.2),_transparent_40%),linear-gradient(135deg,_#0f172a,_#111827)] px-4 py-16 text-slate-100 sm:px-6 lg:px-8">
+      <section className="mx-auto flex max-w-3xl flex-col gap-8 rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl shadow-black/30 backdrop-blur">
+        <div className="space-y-3">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">
+            웹에서 구동하는 예제
+          </p>
+          <h1 className="text-4xl font-semibold sm:text-5xl">Secret Room</h1>
+          <p className="max-w-2xl text-lg leading-8 text-slate-300">
+            이 페이지는 React와 Next.js로 만든 간단한 웹 앱입니다.
+            입력창과 버튼을 조작해보면서 브라우저에서 바로 동작하는 코드를 확인해보세요.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="flex flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/70 p-5 sm:flex-row">
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-400"
+            placeholder="이름을 입력하세요"
+          />
+          <button
+            onClick={() => setCount((current) => current + 1)}
+            className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            클릭 수: {count}
+          </button>
         </div>
-      </main>
-    </div>
+
+        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-5">
+          <p className="text-sm text-cyan-200">환영 메시지</p>
+          <p className="mt-2 text-xl font-medium">{greeting}</p>
+        </div>
+
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {tips.map((tip) => (
+            <li
+              key={tip}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300"
+            >
+              {tip}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
   );
 }
