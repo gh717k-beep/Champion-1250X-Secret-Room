@@ -412,21 +412,30 @@ select {
 }
 
 @media (max-width: 720px) {
-  .entry-info-group {
-    grid-template-columns: 1fr;
+  .result-box ul {
+    margin: 0;
+    padding-left: 0;
   }
 
-  .entry-name,
-  .entry-phone,
-  .winner-display-row > .entry-text:first-child,
-  .winner-display-row > .entry-text:last-child {
-    grid-column: auto;
-    transform: none;
+  .result-item {
+    overflow-x: auto;
   }
 
+  .entry-display-row,
+  .entry-edit-row,
   .winner-display-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    min-width: 560px;
+    flex-wrap: nowrap;
+  }
+
+  .entry-info-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .entry-side-group .button-secondary,
+  .entry-edit-row .button-secondary {
+    width: auto;
+    min-width: 72px;
   }
 
   .page-content {
