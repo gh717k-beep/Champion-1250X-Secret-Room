@@ -94,16 +94,10 @@ export async function POST(req: NextRequest) {
   if (cleaned.length < 8) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
 
   const entries = await readEntries();
-  const normalizedName = String(name).trim();
-  const exists = entries.find(
-    (entry) => entry.slot === slot && entry.phone === cleaned && entry.name === normalizedName
-  );
-  if (exists)
-    return NextResponse.json({ error: "이미 동일한 이름과 전화번호로 신청하셨습니다." }, { status: 409 });
+  const exists = entries.find((entry) => entry.slot === slot && entry.phone === cleaned);
+  if (exists) return NextResponse.json({ error: "이미 동일한 전화번호로 응모하셨습니다." }, { status: 409 });
 
   const entry: Entry = {
-    id: Date.now(),
-    name: normalizedName,
     id: Date.now(),
     name: String(name).trim(),
     phone: cleaned,
@@ -146,32 +140,20 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const url = new URL(req.url);
   const secret = url.searchParams.get("secret") || "";
-  const slot = url.searchParams.get("slot");
-  const idRaw = url.searchParams.get("id");
-  const id = idRaw ? Number(idRaw) : undefined;
+  const id = Number(url.searchParams.get("id"));
 
   if (secret.trim().toLowerCase() !== ADMIN_PASSWORD.toLowerCase()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
   const entries = await readEntries();
+  const index = entries.findIndex((entry) => entry.id === id);
+  if (index === -1) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
 
-  if (typeof id === "number") {
-    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  entries.splice(index, 1);
+  await writeEntries(entries);
 
-    const index = entries.findIndex((entry) => entry.id === id);
-    if (index === -1) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-
-    entries.splice(index, 1);
-    await writeEntries(entries);
-    return NextResponse.json({ ok: true });
-  }
-
-  if (slot) {
-    const filtered = entries.filter((entry) => entry.slot !== slot);
-    await writeEntries(filtered);
-    return NextResponse.json({ ok: true, deleted: entries.length - filtered.length });
-  }
-
-  return NextResponse.json({ error: "Missing id or slot" }, { status: 400 });
+  return NextResponse.json({ ok: true });
 }
