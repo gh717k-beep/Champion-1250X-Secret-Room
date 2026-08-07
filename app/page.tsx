@@ -122,7 +122,7 @@ export default function Home() {
               <div className="guide-content">
                 <p className="guide-line">
                   <span className="guide-dot" aria-hidden="true" />
-                  <span>최대 10명까지 즐길 수 있는 방탈출 컨텐츠 입니다.</span>
+                  <span>최대 10명까지 체험할 수 있는 방탈출 컨텐츠 입니다.</span>
                 </p>
                 <p className="guide-line">
                   <span className="guide-dot" aria-hidden="true" />
@@ -134,7 +134,7 @@ export default function Home() {
                 </p>
                 <p className="guide-line">
                   <span className="guide-dot" aria-hidden="true" />
-                  <span>비밀의 방 이용시 이용시간이 30분 추가됩니다.</span>
+                  <span>비밀의 방 체험 시 이용시간이 30분 추가됩니다.</span>
                 </p>
               </div>
             </div>
