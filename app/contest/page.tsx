@@ -124,6 +124,7 @@ function AdminDraw({ secret }: { secret: string }) {
   });
   const [slotSettingsLoading, setSlotSettingsLoading] = useState(false);
   const [slotSettingsSaving, setSlotSettingsSaving] = useState(false);
+  const [slotSettingsError, setSlotSettingsError] = useState("");
 
   const fetchCount = async (currentSlot: Slot) => {
     try {
@@ -159,10 +160,12 @@ function AdminDraw({ secret }: { secret: string }) {
 
   const fetchSlotSettings = async () => {
     setSlotSettingsLoading(true);
+    setSlotSettingsError("");
     try {
       const res = await fetch("/api/contest/slots");
       if (!res.ok) {
-        setEditError("시간대 신청 설정을 불러오지 못했습니다.");
+        const data = await res.json().catch(() => null);
+        setSlotSettingsError(data?.error || "시간대 신청 설정을 불러오지 못했습니다.");
         return;
       }
 
@@ -179,7 +182,7 @@ function AdminDraw({ secret }: { secret: string }) {
       }
       setSlotSettings(nextMap);
     } catch {
-      setEditError("시간대 신청 설정을 불러오지 못했습니다.");
+      setSlotSettingsError("시간대 신청 설정을 불러오지 못했습니다.");
     } finally {
       setSlotSettingsLoading(false);
     }
@@ -196,6 +199,7 @@ function AdminDraw({ secret }: { secret: string }) {
 
   async function updateSlotSetting(targetSlot: Slot, isOpen: boolean) {
     setEditError("");
+    setSlotSettingsError("");
     setSlotSettingsSaving(true);
     try {
       const res = await fetch(`/api/contest/slots?secret=${encodeURIComponent(secret)}`, {
@@ -206,13 +210,13 @@ function AdminDraw({ secret }: { secret: string }) {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setEditError(data?.error || "시간대 설정 저장 중 오류가 발생했습니다.");
+        setSlotSettingsError(data?.error || "시간대 설정 저장 중 오류가 발생했습니다.");
         return;
       }
 
       setSlotSettings((prev) => ({ ...prev, [targetSlot]: isOpen }));
     } catch {
-      setEditError("시간대 설정 저장 중 오류가 발생했습니다.");
+      setSlotSettingsError("시간대 설정 저장 중 오류가 발생했습니다.");
     } finally {
       setSlotSettingsSaving(false);
     }
@@ -356,19 +360,22 @@ function AdminDraw({ secret }: { secret: string }) {
             const isOpen = slotSettings[slotKey];
             return (
               <div className="slot-setting-row" key={slotKey}>
-                <span className="entry-text">{label}</span>
+                <span className="entry-text">
+                  {label} {isOpen ? "(신청 받는 중)" : "(신청 잠김)"}
+                </span>
                 <button
                   type="button"
                   className="button-secondary"
                   disabled={slotSettingsSaving || slotSettingsLoading}
                   onClick={() => updateSlotSetting(slotKey, !isOpen)}
                 >
-                  {isOpen ? "신청 받는 중" : "신청 잠김"}
+                  {isOpen ? "신청 잠그기" : "신청 열기"}
                 </button>
               </div>
             );
           })}
         </div>
+        {slotSettingsError ? <div className="error-text">{slotSettingsError}</div> : null}
       </div>
 
       <label className="form-label">
