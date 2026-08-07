@@ -117,18 +117,27 @@ export default function Home() {
             <h1>비밀의 방</h1>
           </div>
 
-          <div className="info-grid">
+          <div className="info-grid single-card">
             <div className="info-box">
               <strong>안내</strong>
-              <p>신청은 보호자 전화번호 당 1회만 가능합니다.</p>
-            </div>
-            <div className="info-box">
-              <strong>추첨</strong>
-              <p>신청 수가 10명을 넘으면 무작위로 10명을 선정합니다.</p>
-            </div>
-            <div className="info-box">
-              <strong>공개</strong>
-              <p>이름은 그대로 공개되며 전화번호는 일부만 표시됩니다.</p>
+              <div className="guide-content">
+                <p className="guide-line">
+                  <span className="guide-dot" aria-hidden="true" />
+                  <span>최대 10명까지 즐길 수 있는 방탈출 컨텐츠 입니다.</span>
+                </p>
+                <p className="guide-line">
+                  <span className="guide-dot" aria-hidden="true" />
+                  <span>신청 인원이 10명을 초과할 시 무작위로 10명을 선정합니다.</span>
+                </p>
+                <p className="guide-line">
+                  <span className="guide-dot" aria-hidden="true" />
+                  <span>6세 이하 어린이는 보호자와 동반 입장 가능합니다.</span>
+                </p>
+                <p className="guide-line">
+                  <span className="guide-dot" aria-hidden="true" />
+                  <span>비밀의 방 이용시 이용시간이 30분 추가됩니다.</span>
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -142,12 +151,12 @@ export default function Home() {
           <form className="contest-form" onSubmit={submit}>
             <label className="form-label">
               <span>아이 이름</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 김철수" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예 : 김놀이" />
             </label>
 
             <label className="form-label">
               <span>보호자 전화번호</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="전화번호 뒤 4자리 입력" />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="전화번호 뒤 4자리 입력  예: 1234" />
             </label>
 
             <label className="form-label">
@@ -166,7 +175,7 @@ export default function Home() {
             </div>
 
             <div className="submit-row">
-              <button type="submit" className="button-primary" disabled={loading}>
+              <button type="submit" className="button-secondary" disabled={loading}>
                 {loading ? "신청 중..." : "신청하기"}
               </button>
             </div>

@@ -102,10 +102,18 @@ select {
   gap: 16px;
 }
 
+.info-grid.single-card {
+  grid-template-columns: 1fr;
+}
+
 @media (min-width: 720px) {
   .info-grid,
   .tip-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .info-grid.single-card {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -123,6 +131,33 @@ select {
   display: block;
   color: #ffffff;
   margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.guide-content {
+  display: grid;
+  gap: 10px;
+}
+
+.guide-note {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.guide-line {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.guide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  margin-top: 0.62em;
+  flex: 0 0 auto;
 }
 
 .feature-card {
