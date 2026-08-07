@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
-type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
+type Slot = "12:00" | "14:00" | "16:00" | "18:00";
 
 type Winner = {
   name: string;
@@ -10,18 +10,17 @@ type Winner = {
 };
 
 const SLOT_LABELS: Record<Slot, string> = {
-  "weekday-16": "평일 16:00",
-  "weekday-18": "평일 18:00",
-  "weekend-12": "주말 12:00",
-  "weekend-14": "주말 14:00",
-  "weekend-16": "주말 16:00",
+  "12:00": "12:00",
+  "14:00": "14:00",
+  "16:00": "16:00",
+  "18:00": "18:00",
 };
 
 export default function Home() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [slot, setSlot] = useState<Slot>("weekday-16");
-  const [winnerSlot, setWinnerSlot] = useState<Slot>("weekday-16");
+  const [slot, setSlot] = useState<Slot>("12:00");
+  const [winnerSlot, setWinnerSlot] = useState<Slot>("12:00");
   const [message, setMessage] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
   const [winners, setWinners] = useState<Winner[]>([]);

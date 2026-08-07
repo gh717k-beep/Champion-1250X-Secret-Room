@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
-type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
+type Slot = "12:00" | "14:00" | "16:00" | "18:00";
 
 type Entry = {
   id: number;
@@ -12,11 +12,10 @@ type Entry = {
 };
 
 const SLOT_LABELS: Record<Slot, string> = {
-  "weekday-16": "평일 16:00",
-  "weekday-18": "평일 18:00",
-  "weekend-12": "주말 12:00",
-  "weekend-14": "주말 14:00",
-  "weekend-16": "주말 16:00",
+  "12:00": "12:00",
+  "14:00": "14:00",
+  "16:00": "16:00",
+  "18:00": "18:00",
 };
 
 const ADMIN_PASSWORD = "X0521";
@@ -66,7 +65,6 @@ export default function ContestPage() {
 
           {!authenticated ? (
             <div className="admin-login-card">
-              <p className="login-note">관리자 비밀번호를 입력해야 관리자 UI가 표시됩니다.</p>
               <form className="login-form" onSubmit={handleLogin}>
                 <label className="form-label">
                   <span>관리자 비밀번호</span>
@@ -77,7 +75,7 @@ export default function ContestPage() {
                     placeholder="비밀번호를 입력하세요"
                   />
                 </label>
-                <button type="submit" className="button-primary">
+                <button type="submit" className="button-secondary">
                   확인
                 </button>
                 {authError ? <div className="error-text">{authError}</div> : null}
@@ -102,7 +100,7 @@ export default function ContestPage() {
 }
 
 function AdminDraw({ secret }: { secret: string }) {
-  const [slot, setSlot] = useState<Slot>("weekday-16");
+  const [slot, setSlot] = useState<Slot>("12:00");
   const [count, setCount] = useState<number | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
