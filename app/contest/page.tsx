@@ -184,8 +184,38 @@ function AdminDraw({ secret }: { secret: string }) {
       if (editingId === entryId) {
         cancelEditing();
       }
+      setCount((prev) => (prev !== null ? Math.max(0, prev - 1) : prev));
     } catch {
       setEditError("삭제 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function deleteAll() {
+    if (entries.length === 0) return;
+    if (!confirm("선택한 시간대의 모든 신청자를 삭제하시겠습니까?")) {
+      return;
+    }
+
+    setLoading(true);
+    setEditError("");
+
+    try {
+      const res = await fetch(
+        `/api/contest?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setEditError(data?.error || "전체 삭제 중 오류가 발생했습니다.");
+        return;
+      }
+      setEntries([]);
+      setCount(0);
+      cancelEditing();
+    } catch {
+      setEditError("전체 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -231,13 +261,20 @@ function AdminDraw({ secret }: { secret: string }) {
       </label>
 
       <div className="message-box" style={{ marginBottom: 18 }}>
-        현재 응모 수: {count === null ? "불러오는 중..." : count}
+        현재 신청 수: {count === null ? "불러오는 중..." : count}
       </div>
 
       <div className="entry-list" style={{ marginBottom: 18 }}>
-        <div className="result-title">응모자 목록</div>
+        <div className="entry-list-header">
+          <div className="result-title">신청자 목록</div>
+          {entries.length > 0 ? (
+            <button type="button" className="button-secondary button-small" onClick={deleteAll} disabled={loading}>
+              전체 삭제
+            </button>
+          ) : null}
+        </div>
         {entries.length === 0 ? (
-          <div className="message-box">해당 시간대에 응모한 사람이 없습니다.</div>
+          <div className="message-box">해당 시간대에 신청한 사람이 없습니다.</div>
         ) : (
           <ul>
             {entries.map((entry) => (

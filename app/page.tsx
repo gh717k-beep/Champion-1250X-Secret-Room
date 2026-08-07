@@ -56,12 +56,12 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.status === 201) {
-        setMessage("응모가 완료되었습니다. 결과는 추첨 후 공개됩니다.");
+        setMessage("신청이 완료되었습니다. 결과는 추첨 후 공개됩니다.");
         setName("");
         setPhone("");
         fetchCount();
       } else {
-        setMessage(data.error || "응모 중 오류가 발생했습니다.");
+        setMessage(data.error || "신청 중 오류가 발생했습니다.");
       }
     } catch (err) {
       setMessage("서버와 통신할 수 없습니다.");
@@ -82,11 +82,11 @@ export default function Home() {
           <div className="info-grid">
             <div className="info-box">
               <strong>안내</strong>
-              <p>응모는 보호자 전화번호 당 1회만 가능합니다.</p>
+              <p>신청은 보호자 전화번호 당 1회만 가능합니다.</p>
             </div>
             <div className="info-box">
               <strong>추첨</strong>
-              <p>응모 수가 10명을 넘으면 무작위로 10명을 선정합니다.</p>
+              <p>신청 수가 10명을 넘으면 무작위로 10명을 선정합니다.</p>
             </div>
             <div className="info-box">
               <strong>공개</strong>
@@ -97,7 +97,7 @@ export default function Home() {
 
         <section className="contest-card">
           <div className="contest-header">
-            <h1>응모하기</h1>
+            <h1>신청하기</h1>
             <p>아이 이름과 보호자 전화번호를 입력하고 원하는 시간대를 선택하세요.</p>
           </div>
 
@@ -113,7 +113,7 @@ export default function Home() {
             </label>
 
             <label className="form-label">
-              <span>응모 시간대 선택</span>
+              <span>신청 시간대 선택</span>
               <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
                 {Object.entries(SLOT_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>
@@ -124,12 +124,12 @@ export default function Home() {
             </label>
 
             <div className="message-box" style={{ marginBottom: 18 }}>
-              현재 응모 수: {count === null ? "불러오는 중..." : count}
+              현재 신청자 수: {count === null ? "불러오는 중..." : count}
             </div>
 
             <div className="submit-row">
               <button type="submit" className="button-primary" disabled={loading}>
-                {loading ? "응모 중..." : "응모하기"}
+                {loading ? "신청 중..." : "신청하기"}
               </button>
             </div>
           </form>
