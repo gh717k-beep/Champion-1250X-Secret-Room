@@ -90,6 +90,11 @@ function AdminDraw({ secret }: { secret: string }) {
   const [slot, setSlot] = useState<Slot>("weekday-16");
   const [count, setCount] = useState<number | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,6 +121,77 @@ function AdminDraw({ secret }: { secret: string }) {
       setEntries([]);
     }
   };
+
+  function startEditing(entry: Entry) {
+    setEditingId(entry.id);
+    setEditName(entry.name);
+    setEditPhone(entry.phone);
+    setEditError("");
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditName("");
+    setEditPhone("");
+    setEditError("");
+  }
+
+  async function saveEdit(entryId: number) {
+    if (!editName.trim() || !editPhone.trim()) {
+      setEditError("이름과 전화번호를 모두 입력해주세요.");
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError("");
+
+    try {
+      const res = await fetch(`/api/contest?secret=${encodeURIComponent(secret)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: entryId, name: editName.trim(), phone: editPhone.trim() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setEditError(data?.error || "저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      await res.json();
+      setEntries((prev) =>
+        prev.map((entry) => (entry.id === entryId ? { ...entry, name: editName.trim(), phone: editPhone.trim() } : entry))
+      );
+      cancelEditing();
+    } catch (err) {
+      setEditError("저장 중 오류가 발생했습니다.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function deleteEntry(entryId: number) {
+    if (!confirm("이 항목을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/contest?secret=${encodeURIComponent(secret)}&id=${entryId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setEditError(data?.error || "삭제 중 오류가 발생했습니다.");
+        return;
+      }
+      setEntries((prev) => prev.filter((entry) => entry.id !== entryId));
+      if (editingId === entryId) {
+        cancelEditing();
+      }
+    } catch {
+      setEditError("삭제 중 오류가 발생했습니다.");
+    }
+  }
 
   useEffect(() => {
     fetchCount(slot);
@@ -170,14 +246,59 @@ function AdminDraw({ secret }: { secret: string }) {
           <ul>
             {entries.map((entry) => (
               <li key={entry.id} className="result-item">
-                <span className="entry-label">이름 :</span>
-                <span className="entry-value">{entry.name}</span>
-                <span className="entry-label">전화번호 :</span>
-                <span className="entry-value">{entry.phone}</span>
+                {editingId === entry.id ? (
+                  <>
+                    <div className="entry-field">
+                      <label className="entry-field-label">이름</label>
+                      <input
+                        className="entry-input"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="이름"
+                      />
+                    </div>
+                    <div className="entry-field">
+                      <label className="entry-field-label">전화번호</label>
+                      <input
+                        className="entry-input"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="전화번호"
+                      />
+                    </div>
+                    <div className="entry-actions">
+                      <button type="button" className="button-secondary" onClick={() => saveEdit(entry.id)} disabled={savingEdit}>
+                        저장
+                      </button>
+                      <button type="button" className="button-secondary" onClick={cancelEditing} disabled={savingEdit}>
+                        취소
+                      </button>
+                      <button type="button" className="button-secondary" onClick={() => deleteEntry(entry.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="entry-label">이름 :</span>
+                    <span className="entry-value">{entry.name}</span>
+                    <span className="entry-label">전화번호 :</span>
+                    <span className="entry-value">{entry.phone}</span>
+                    <div className="entry-actions">
+                      <button type="button" className="button-secondary" onClick={() => startEditing(entry)}>
+                        수정
+                      </button>
+                      <button type="button" className="button-secondary" onClick={() => deleteEntry(entry.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
         )}
+        {editError ? <div className="error-text">{editError}</div> : null}
       </div>
 
       <button type="submit" className="button-secondary" disabled={loading}>

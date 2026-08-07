@@ -266,22 +266,64 @@ select {
   list-style: none;
   padding: 14px 16px;
   color: #ffffff;
-  display: grid;
-  grid-template-columns: auto minmax(100px, 1fr) auto minmax(120px, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 12px;
+}
+
+.entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.entry-field-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.entry-input {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 12px 14px;
+  background: rgba(21, 30, 54, 0.95);
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.entry-input:focus {
+  border-color: rgba(45, 212, 191, 0.9);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.12);
+  background: rgba(15, 23, 42, 0.95);
 }
 
 .entry-label {
   white-space: nowrap;
   opacity: 0.8;
+  flex: 0 0 auto;
+  min-width: 70px;
 }
 
 .entry-value {
+  flex: 1 1 180px;
+  min-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
 
 @media (max-width: 720px) {
   .page-content {
@@ -301,7 +343,8 @@ select {
   }
 
   .button-primary,
-  .button-secondary {
+  .button-secondary,
+  .button-danger {
     width: 100%;
   }
 }
