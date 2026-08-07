@@ -16,14 +16,22 @@ export default function Home() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [slot, setSlot] = useState<Slot>("weekday-16");
+  const [winnerSlot, setWinnerSlot] = useState<Slot>("weekday-16");
   const [message, setMessage] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
+  const [winners, setWinners] = useState<Array<{ maskedName: string; phoneTail: string }>>([]);
+  const [winnerLoading, setWinnerLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slot]);
+
+  useEffect(() => {
+    fetchWinners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winnerSlot]);
 
   async function fetchCount() {
     try {
@@ -67,6 +75,20 @@ export default function Home() {
       setMessage("서버와 통신할 수 없습니다.");
     }
     setLoading(false);
+  }
+
+  async function fetchWinners() {
+    setWinnerLoading(true);
+    try {
+      const res = await fetch(`/api/contest?slot=${encodeURIComponent(winnerSlot)}&winners=true`);
+      if (!res.ok) return setWinners([]);
+      const data = await res.json();
+      setWinners(data.winners ?? []);
+    } catch {
+      setWinners([]);
+    } finally {
+      setWinnerLoading(false);
+    }
   }
 
   return (
@@ -128,18 +150,55 @@ export default function Home() {
             </div>
 
             <div className="submit-row">
-              <button type="submit" className="button-primary" disabled={loading}>
+              <button type="submit" className="button-primary button-large" disabled={loading}>
                 {loading ? "신청 중..." : "신청하기"}
               </button>
             </div>
           </form>
 
           {message && <div className="message-box">{message}</div>}
+        </section>
+        <section className="contest-card">
+          <div className="contest-header">
+            <h1>당첨자 확인</h1>
+            <p>시간대를 선택하면 해당 시간대의 당첨자 목록을 확인할 수 있습니다.</p>
+          </div>
 
-          <a href="/contest" className="button-secondary" style={{ marginTop: 24 }}>
+          <label className="form-label">
+            <span>당첨자 시간대 선택</span>
+            <select value={winnerSlot} onChange={(e) => setWinnerSlot(e.target.value as Slot)}>
+              {Object.entries(SLOT_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="message-box" style={{ marginBottom: 18 }}>
+            현재 선택된 시간대 당첨자 수: {winners.length}
+          </div>
+
+          {winnerLoading ? (
+            <div className="message-box">당첨자 목록을 불러오는 중입니다...</div>
+          ) : winners.length === 0 ? (
+            <div className="message-box">해당 시간대에 당첨자가 없습니다.</div>
+          ) : (
+            <ul>
+              {winners.map((winner, index) => (
+                <li key={index} className="result-item">
+                  {winner.maskedName} — {winner.phoneTail}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <div className="page-footer-link">
+          <a href="/contest" className="button-secondary button-compact">
             관리자용 페이지
           </a>
-        </section>
+        </div>
       </div>
     </main>
   );

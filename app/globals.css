@@ -190,6 +190,21 @@ select {
   transform: translateY(-1px);
 }
 
+.button-large {
+  width: 100%;
+  min-height: 58px;
+  font-size: 1rem;
+  padding: 0 28px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.18);
+}
+
+.button-compact {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.9rem;
+}
+
 .button-primary:disabled,
 .button-secondary:disabled {
   opacity: 0.55;
@@ -200,6 +215,13 @@ select {
 .admin-form {
   display: grid;
   gap: 18px;
+}
+
+.page-footer-link {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 24px;
 }
 
 .form-label {

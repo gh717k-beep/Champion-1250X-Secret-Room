@@ -4,20 +4,26 @@
     "name": "김건호",
     "phone": "01033947740",
     "slot": "weekday-16",
-    "createdAt": "2026-08-07T01:46:09.763Z"
+    "createdAt": "2026-08-07T01:46:09.763Z",
+    "winner": true,
+    "drawnAt": "2026-08-07T01:51:24.444Z"
   },
   {
     "id": 1786067175102,
     "name": "김철수",
     "phone": "01033947740",
     "slot": "weekday-16",
-    "createdAt": "2026-08-07T01:46:15.102Z"
+    "createdAt": "2026-08-07T01:46:15.102Z",
+    "winner": true,
+    "drawnAt": "2026-08-07T01:51:24.444Z"
   },
   {
     "id": 1786067183289,
     "name": "김철수ㄴ",
     "phone": "01033947740",
     "slot": "weekday-16",
-    "createdAt": "2026-08-07T01:46:23.289Z"
+    "createdAt": "2026-08-07T01:46:23.289Z",
+    "winner": true,
+    "drawnAt": "2026-08-07T01:51:24.444Z"
   }
 ]
