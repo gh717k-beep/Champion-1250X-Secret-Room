@@ -171,10 +171,6 @@ function AdminDraw({ secret }: { secret: string }) {
   }
 
   async function deleteEntry(entryId: number) {
-    if (!confirm("이 항목을 삭제하시겠습니까?")) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/contest?secret=${encodeURIComponent(secret)}&id=${entryId}`, {
         method: "DELETE",
@@ -287,9 +283,6 @@ function AdminDraw({ secret }: { secret: string }) {
                     <div className="entry-actions">
                       <button type="button" className="button-secondary" onClick={() => startEditing(entry)}>
                         수정
-                      </button>
-                      <button type="button" className="button-secondary" onClick={() => deleteEntry(entry.id)}>
-                        삭제
                       </button>
                     </div>
                   </>
