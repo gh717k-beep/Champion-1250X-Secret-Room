@@ -262,6 +262,24 @@ select {
   font-size: 1rem;
 }
 
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.list-header .result-title {
+  margin: 0;
+}
+
+.list-header-button {
+  min-height: 38px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .result-item {
   list-style: none;
   padding: 14px 16px;
@@ -282,10 +300,10 @@ select {
 }
 
 .winner-display-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  justify-content: flex-start;
-  gap: 24px;
+  width: 100%;
 }
 
 .entry-info-group,
@@ -299,7 +317,7 @@ select {
 .entry-info-group {
   flex: 1 1 320px;
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
 }
 
@@ -313,11 +331,25 @@ select {
 
 .entry-name {
   text-align: left;
+  grid-column: 2;
+  transform: translateX(-90px);
 }
 
 .entry-phone {
   text-align: left;
-  margin-left: -10px;
+  margin-left: 0;
+  grid-column: 3;
+  transform: translateX(-90px);
+}
+
+.winner-display-row > .entry-text:first-child {
+  grid-column: 2;
+  transform: translateX(-90px);
+}
+
+.winner-display-row > .entry-text:last-child {
+  grid-column: 3;
+  transform: translateX(-90px);
 }
 
 .entry-inline-input {
@@ -347,6 +379,19 @@ select {
 @media (max-width: 720px) {
   .entry-info-group {
     grid-template-columns: 1fr;
+  }
+
+  .entry-name,
+  .entry-phone,
+  .winner-display-row > .entry-text:first-child,
+  .winner-display-row > .entry-text:last-child {
+    grid-column: auto;
+    transform: none;
+  }
+
+  .winner-display-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .page-content {

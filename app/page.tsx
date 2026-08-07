@@ -81,7 +81,9 @@ export default function Home() {
     const cleaned = cleanPhone(phone);
 
     if (!name.trim()) return setMessage("아이 이름을 입력하세요.");
-    if (cleaned.length < 8) return setMessage("유효한 전화번호를 입력하세요.");
+    if (cleaned.length !== 11 && cleaned.length !== 4) {
+      return setMessage("보호자 전화번호는 숫자 11자리 또는 뒤 4자리만 입력하세요.");
+    }
 
     setLoading(true);
     try {
@@ -145,7 +147,7 @@ export default function Home() {
 
             <label className="form-label">
               <span>보호자 전화번호</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="숫자만 입력" />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="전화번호 뒤 4자리 입력" />
             </label>
 
             <label className="form-label">
@@ -171,10 +173,6 @@ export default function Home() {
           </form>
 
           {message && <div className="message-box">{message}</div>}
-
-          <a href="/contest" className="button-secondary" style={{ marginTop: 24 }}>
-            관리자용 페이지
-          </a>
         </section>
 
         <section className="contest-card">
@@ -211,6 +209,12 @@ export default function Home() {
             </ul>
           )}
         </section>
+
+        <div style={{ width: "100%", display: "flex", justifyContent: "flex-start" }}>
+          <a href="/contest" className="button-secondary">
+            관리자용 페이지
+          </a>
+        </div>
       </div>
     </main>
   );

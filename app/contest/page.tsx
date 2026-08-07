@@ -111,6 +111,7 @@ function AdminDraw({ secret }: { secret: string }) {
   const [editError, setEditError] = useState("");
   const [drawMessage, setDrawMessage] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fetchCount = async (currentSlot: Slot) => {
@@ -221,6 +222,37 @@ function AdminDraw({ secret }: { secret: string }) {
     }
   }
 
+  async function deleteAllEntries() {
+    if (entries.length === 0) return;
+    const ok = confirm("현재 시간대 신청자를 전체 삭제할까요?");
+    if (!ok) return;
+
+    setEditError("");
+    setDrawMessage("");
+    setDeletingAll(true);
+
+    try {
+      const res = await fetch(
+        `/api/contest?secret=${encodeURIComponent(secret)}&slot=${encodeURIComponent(slot)}`,
+        { method: "DELETE" }
+      );
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setEditError(data?.error || "전체 삭제 중 오류가 발생했습니다.");
+        return;
+      }
+
+      setEntries([]);
+      setCount(0);
+      cancelEditing();
+    } catch {
+      setEditError("전체 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setDeletingAll(false);
+    }
+  }
+
   async function runDraw(e?: FormEvent) {
     e?.preventDefault();
     setEditError("");
@@ -265,7 +297,17 @@ function AdminDraw({ secret }: { secret: string }) {
       </div>
 
       <div className="result-box">
-        <div className="result-title">신청자 목록</div>
+        <div className="list-header">
+          <div className="result-title">신청자 목록</div>
+          <button
+            type="button"
+            className="button-secondary list-header-button"
+            onClick={deleteAllEntries}
+            disabled={deletingAll || loading || entries.length === 0}
+          >
+            {deletingAll ? "삭제 중..." : "신청자 전체 삭제"}
+          </button>
+        </div>
         {entries.length === 0 ? (
           <div className="result-item">현재 해당 시간대 신청자가 없습니다.</div>
         ) : (

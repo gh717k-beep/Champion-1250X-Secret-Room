@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
   if (!name || !phone || !slot) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
   const cleaned = String(phone).replace(/[^0-9]/g, "");
-  if (cleaned.length < 8) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
+  if (cleaned.length !== 11 && cleaned.length !== 4) {
+    return NextResponse.json({ error: "전화번호는 숫자 11자리 또는 뒤 4자리만 입력해 주세요." }, { status: 400 });
+  }
 
   const entries = await readEntries();
     const normalizedName = String(name).trim();
@@ -124,7 +126,9 @@ export async function PATCH(req: NextRequest) {
   if (typeof id !== "number" || !name || !phone) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
   const cleaned = String(phone).replace(/[^0-9]/g, "");
-  if (cleaned.length < 8) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
+  if (cleaned.length !== 11 && cleaned.length !== 4) {
+    return NextResponse.json({ error: "전화번호는 숫자 11자리 또는 뒤 4자리만 입력해 주세요." }, { status: 400 });
+  }
 
   const entries = await readEntries();
   const entry = entries.find((item) => item.id === id);
@@ -140,15 +144,23 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const url = new URL(req.url);
   const secret = url.searchParams.get("secret") || "";
+  const slot = url.searchParams.get("slot");
   const id = Number(url.searchParams.get("id"));
 
   if (secret.trim().toLowerCase() !== ADMIN_PASSWORD.toLowerCase()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const entries = await readEntries();
+
+  if (slot) {
+    const filtered = entries.filter((entry) => entry.slot !== slot);
+    await writeEntries(filtered);
+    return NextResponse.json({ ok: true, deleted: entries.length - filtered.length });
+  }
+
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const entries = await readEntries();
   const index = entries.findIndex((entry) => entry.id === id);
   if (index === -1) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
 
