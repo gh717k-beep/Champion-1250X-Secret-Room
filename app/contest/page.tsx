@@ -4,6 +4,13 @@ import { useEffect, useState, type FormEvent } from "react";
 
 type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
 
+type Entry = {
+  id: number;
+  name: string;
+  phone: string;
+  createdAt: string;
+};
+
 const SLOT_LABELS: Record<Slot, string> = {
   "weekday-16": "평일 16:00",
   "weekday-18": "평일 18:00",
@@ -14,12 +21,19 @@ const SLOT_LABELS: Record<Slot, string> = {
 
 const ADMIN_PASSWORD = "X0521";
 
-type Entry = {
-  id: number;
-  name: string;
-  phone: string;
-  createdAt: string;
-};
+function formatCreatedAt(createdAt: string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return createdAt;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
 
 export default function ContestPage() {
   const [password, setPassword] = useState("");
@@ -29,6 +43,7 @@ export default function ContestPage() {
   function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const normalized = password.trim().toLowerCase();
+
     if (normalized === ADMIN_PASSWORD.toLowerCase()) {
       setAuthenticated(true);
       setAuthError("");
@@ -95,13 +110,17 @@ function AdminDraw({ secret }: { secret: string }) {
   const [editPhone, setEditPhone] = useState("");
   const [editError, setEditError] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{ ok: boolean; body: { winners?: Array<{ maskedName: string; phoneTail: string }>; error?: string } } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchCount = async (currentSlot: Slot) => {
     try {
       const res = await fetch(`/api/contest?slot=${encodeURIComponent(currentSlot)}`);
-      if (!res.ok) return setCount(null);
+      if (!res.ok) {
+        setCount(null);
+        return;
+      }
+
       const data = await res.json();
       setCount(data.count ?? null);
     } catch {
@@ -114,13 +133,22 @@ function AdminDraw({ secret }: { secret: string }) {
       const res = await fetch(
         `/api/contest?slot=${encodeURIComponent(currentSlot)}&list=true&secret=${encodeURIComponent(secret)}`
       );
-      if (!res.ok) return setEntries([]);
+      if (!res.ok) {
+        setEntries([]);
+        return;
+      }
+
       const data = await res.json();
       setEntries(data.entries ?? []);
     } catch {
       setEntries([]);
     }
   };
+
+  useEffect(() => {
+    fetchCount(slot);
+    fetchEntries(slot);
+  }, [slot, secret]);
 
   function startEditing(entry: Entry) {
     setEditingId(entry.id);
@@ -152,18 +180,19 @@ function AdminDraw({ secret }: { secret: string }) {
         body: JSON.stringify({ id: entryId, name: editName.trim(), phone: editPhone.trim() }),
       });
 
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         setEditError(data?.error || "저장 중 오류가 발생했습니다.");
         return;
       }
 
-      await res.json();
       setEntries((prev) =>
-        prev.map((entry) => (entry.id === entryId ? { ...entry, name: editName.trim(), phone: editPhone.trim() } : entry))
+        prev.map((entry) =>
+          entry.id === entryId ? { ...entry, name: editName.trim(), phone: editPhone.trim() } : entry
+        )
       );
       cancelEditing();
-    } catch (err) {
+    } catch {
       setEditError("저장 중 오류가 발생했습니다.");
     } finally {
       setSavingEdit(false);
@@ -171,80 +200,47 @@ function AdminDraw({ secret }: { secret: string }) {
   }
 
   async function deleteEntry(entryId: number) {
+    setEditError("");
+
     try {
       const res = await fetch(`/api/contest?secret=${encodeURIComponent(secret)}&id=${entryId}`, {
         method: "DELETE",
       });
+
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         setEditError(data?.error || "삭제 중 오류가 발생했습니다.");
         return;
       }
+
       setEntries((prev) => prev.filter((entry) => entry.id !== entryId));
-      if (editingId === entryId) {
-        cancelEditing();
-      }
-      setCount((prev) => (prev !== null ? Math.max(0, prev - 1) : prev));
+      setCount((prev) => (prev === null ? prev : Math.max(0, prev - 1)));
+      cancelEditing();
     } catch {
       setEditError("삭제 중 오류가 발생했습니다.");
     }
   }
 
-  async function deleteAll() {
-    if (entries.length === 0) return;
-    if (!confirm("선택한 시간대의 모든 신청자를 삭제하시겠습니까?")) {
-      return;
-    }
-
-    setLoading(true);
-    setEditError("");
-
-    try {
-      const res = await fetch(
-        `/api/contest?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setEditError(data?.error || "전체 삭제 중 오류가 발생했습니다.");
-        return;
-      }
-      setEntries([]);
-      setCount(0);
-      cancelEditing();
-    } catch {
-      setEditError("전체 삭제 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchCount(slot);
-    fetchEntries(slot);
-  }, [slot, secret]);
-
   async function runDraw(e?: FormEvent) {
     e?.preventDefault();
     setResult(null);
-
-    if (!secret.trim()) {
-      setResult({ ok: false, body: { error: "비밀번호를 확인해 주세요." } });
-      return;
-    }
-
     setLoading(true);
+
     try {
       const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, {
         method: "POST",
       });
       const data = await res.json();
       setResult({ ok: res.ok, body: data });
-    } catch (err) {
-      setResult({ ok: false, body: { error: "비밀번호를 확인해 주세요." } });
-    }
 
-    setLoading(false);
+      if (res.ok) {
+        fetchEntries(slot);
+      }
+    } catch {
+      setResult({ ok: false, body: { error: "서버와 통신할 수 없습니다." } });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -264,65 +260,52 @@ function AdminDraw({ secret }: { secret: string }) {
         현재 신청 수: {count === null ? "불러오는 중..." : count}
       </div>
 
-      <div className="entry-list" style={{ marginBottom: 18 }}>
-        <div className="entry-list-header">
-          <div className="result-title">신청자 목록</div>
-          {entries.length > 0 ? (
-            <button type="button" className="button-secondary button-small" onClick={deleteAll} disabled={loading}>
-              전체 삭제
-            </button>
-          ) : null}
-        </div>
+      <div className="result-box">
+        <div className="result-title">신청자 목록</div>
         {entries.length === 0 ? (
-          <div className="message-box">해당 시간대에 신청한 사람이 없습니다.</div>
+          <div className="result-item">현재 해당 시간대 신청자가 없습니다.</div>
         ) : (
           <ul>
             {entries.map((entry) => (
               <li key={entry.id} className="result-item">
                 {editingId === entry.id ? (
-                  <>
-                    <div className="entry-field">
-                      <label className="entry-field-label">이름</label>
-                      <input
-                        className="entry-input"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        placeholder="이름"
-                      />
-                    </div>
-                    <div className="entry-field">
-                      <label className="entry-field-label">전화번호</label>
-                      <input
-                        className="entry-input"
-                        value={editPhone}
-                        onChange={(e) => setEditPhone(e.target.value)}
-                        placeholder="전화번호"
-                      />
-                    </div>
-                    <div className="entry-actions">
-                      <button type="button" className="button-secondary" onClick={() => saveEdit(entry.id)} disabled={savingEdit}>
-                        저장
-                      </button>
-                      <button type="button" className="button-secondary" onClick={cancelEditing} disabled={savingEdit}>
-                        취소
-                      </button>
-                      <button type="button" className="button-secondary" onClick={() => deleteEntry(entry.id)}>
-                        삭제
-                      </button>
-                    </div>
-                  </>
+                  <div className="entry-edit-row">
+                    <input
+                      className="entry-inline-input"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="이름"
+                    />
+                    <input
+                      className="entry-inline-input"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="전화번호"
+                    />
+                    <span className="entry-time">{formatCreatedAt(entry.createdAt)}</span>
+                    <button type="button" className="button-secondary" onClick={() => saveEdit(entry.id)} disabled={savingEdit}>
+                      저장
+                    </button>
+                    <button type="button" className="button-secondary" onClick={cancelEditing} disabled={savingEdit}>
+                      취소
+                    </button>
+                    <button type="button" className="button-secondary" onClick={() => deleteEntry(entry.id)} disabled={savingEdit}>
+                      삭제
+                    </button>
+                  </div>
                 ) : (
-                  <>
-                    <span className="entry-label">이름 :</span>
-                    <span className="entry-value">{entry.name}</span>
-                    <span className="entry-label">전화번호 :</span>
-                    <span className="entry-value">{entry.phone}</span>
-                    <div className="entry-actions">
+                  <div className="entry-display-row">
+                    <div className="entry-info-group">
+                      <span className="entry-text entry-name">이름 : {entry.name}</span>
+                      <span className="entry-text entry-phone">전화번호 : {entry.phone}</span>
+                    </div>
+                    <div className="entry-side-group">
+                      <span className="entry-time">{formatCreatedAt(entry.createdAt)}</span>
                       <button type="button" className="button-secondary" onClick={() => startEditing(entry)}>
                         수정
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
               </li>
             ))}
@@ -335,24 +318,24 @@ function AdminDraw({ secret }: { secret: string }) {
         {loading ? "추첨 중..." : "추첨 실행"}
       </button>
 
-      {result && (
+      {result ? (
         <div className="result-box">
           {result.ok ? (
             <>
               <div className="result-title">당첨자 목록</div>
               <ul>
-                {result.body.winners.map((winner: any, index: number) => (
+                {(result.body.winners ?? []).map((winner, index) => (
                   <li key={index} className="result-item">
-                    {winner.maskedName} — {winner.phoneTail}
+                    {winner.maskedName} - {winner.phoneTail}
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <div className="error-text">{result.body?.error || "오류가 발생했습니다."}</div>
+            <div className="error-text">{result.body.error ?? "오류가 발생했습니다."}</div>
           )}
         </div>
-      )}
+      ) : null}
     </form>
   );
 }
