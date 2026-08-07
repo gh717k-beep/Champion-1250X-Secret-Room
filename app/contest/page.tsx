@@ -14,6 +14,13 @@ const SLOT_LABELS: Record<Slot, string> = {
 
 const ADMIN_PASSWORD = "X0521";
 
+type Entry = {
+  id: number;
+  name: string;
+  phone: string;
+  createdAt: string;
+};
+
 export default function ContestPage() {
   const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -82,6 +89,7 @@ export default function ContestPage() {
 function AdminDraw({ secret }: { secret: string }) {
   const [slot, setSlot] = useState<Slot>("weekday-16");
   const [count, setCount] = useState<number | null>(null);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -96,9 +104,23 @@ function AdminDraw({ secret }: { secret: string }) {
     }
   };
 
+  const fetchEntries = async (currentSlot: Slot) => {
+    try {
+      const res = await fetch(
+        `/api/contest?slot=${encodeURIComponent(currentSlot)}&list=true&secret=${encodeURIComponent(secret)}`
+      );
+      if (!res.ok) return setEntries([]);
+      const data = await res.json();
+      setEntries(data.entries ?? []);
+    } catch {
+      setEntries([]);
+    }
+  };
+
   useEffect(() => {
     fetchCount(slot);
-  }, [slot]);
+    fetchEntries(slot);
+  }, [slot, secret]);
 
   async function runDraw(e?: FormEvent) {
     e?.preventDefault();
@@ -138,6 +160,24 @@ function AdminDraw({ secret }: { secret: string }) {
 
       <div className="message-box" style={{ marginBottom: 18 }}>
         현재 응모 수: {count === null ? "불러오는 중..." : count}
+      </div>
+
+      <div className="entry-list" style={{ marginBottom: 18 }}>
+        <div className="result-title">응모자 목록</div>
+        {entries.length === 0 ? (
+          <div className="message-box">해당 시간대에 응모한 사람이 없습니다.</div>
+        ) : (
+          <ul>
+            {entries.map((entry) => (
+              <li key={entry.id} className="result-item">
+                <span className="entry-label">이름 :</span>
+                <span className="entry-value">{entry.name}</span>
+                <span className="entry-label">전화번호 :</span>
+                <span className="entry-value">{entry.phone}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <button type="submit" className="button-secondary" disabled={loading}>

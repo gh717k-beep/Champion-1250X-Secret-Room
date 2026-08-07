@@ -266,6 +266,21 @@ select {
   list-style: none;
   padding: 14px 16px;
   color: #ffffff;
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr) auto minmax(120px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.entry-label {
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.entry-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 720px) {
