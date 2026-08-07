@@ -94,12 +94,15 @@ export async function POST(req: NextRequest) {
   if (cleaned.length < 8) return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
 
   const entries = await readEntries();
-  const exists = entries.find((entry) => entry.slot === slot && entry.phone === cleaned);
-  if (exists) return NextResponse.json({ error: "이미 동일한 전화번호로 응모하셨습니다." }, { status: 409 });
+    const normalizedName = String(name).trim();
+    const exists = entries.find(
+      (entry) => entry.slot === slot && entry.phone === cleaned && entry.name === normalizedName
+    );
+    if (exists) return NextResponse.json({ error: "이미 동일한 이름과 전화번호로 신청하셨습니다." }, { status: 409 });
 
   const entry: Entry = {
     id: Date.now(),
-    name: String(name).trim(),
+      name: normalizedName,
     phone: cleaned,
     slot: String(slot),
     createdAt: new Date().toISOString(),
