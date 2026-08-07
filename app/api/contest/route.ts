@@ -1,50 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const ENTRIES_FILE = path.join(DATA_DIR, "entries.json");
 const ADMIN_PASSWORD = "X0521";
+const TABLE = "contest_entries";
 
-type Entry = {
+type ContestRow = {
   id: number;
   name: string;
   phone: string;
   slot: string;
-  createdAt: string;
-  winner?: boolean;
-  drawnAt?: string;
+  created_at: string;
+  winner: boolean | null;
+  drawn_at: string | null;
 };
-
-async function ensureData() {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.access(ENTRIES_FILE);
-  } catch {
-    await fs.writeFile(ENTRIES_FILE, JSON.stringify([]));
-  }
-}
-
-async function readEntries(): Promise<Entry[]> {
-  await ensureData();
-  const raw = await fs.readFile(ENTRIES_FILE, "utf8");
-  try {
-    return JSON.parse(raw) as Entry[];
-  } catch {
-    return [];
-  }
-}
-
-async function writeEntries(items: Entry[]) {
-  await ensureData();
-  await fs.writeFile(ENTRIES_FILE, JSON.stringify(items, null, 2));
-}
 
 function publicPhone(phone: string) {
   const digits = phone.replace(/[^0-9]/g, "");
   if (digits.length === 11) return digits.slice(-4);
   if (digits.length <= 4) return digits;
   return digits.slice(-4);
+}
+
+function getAdminClientOrResponse() {
+  try {
+    return getSupabaseAdmin();
+  } catch {
+    return NextResponse.json(
+      { error: "서버 설정이 완료되지 않았습니다. Supabase 환경변수를 확인해 주세요." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -54,30 +39,56 @@ export async function GET(req: NextRequest) {
   const winners = url.searchParams.get("winners");
   const secret = url.searchParams.get("secret") || "";
 
-  const entries = await readEntries();
+  const supabase = getAdminClientOrResponse();
+  if (supabase instanceof NextResponse) return supabase;
+
   if (slot && list === "true") {
     if (secret.trim().toLowerCase() !== ADMIN_PASSWORD.toLowerCase()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const filtered = entries.filter((entry) => entry.slot === slot);
-    return NextResponse.json({ entries: filtered.map(({ id, name, phone, createdAt }) => ({ id, name, phone, createdAt })) });
+
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("id, name, phone, created_at")
+      .eq("slot", slot)
+      .order("created_at", { ascending: true });
+
+    if (error) return NextResponse.json({ error: "Failed to load entries" }, { status: 500 });
+
+    const entries = (data ?? []).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      phone: entry.phone,
+      createdAt: entry.created_at,
+    }));
+
+    return NextResponse.json({ entries });
   }
 
   if (slot && winners === "true") {
-    const filtered = entries.filter((entry) => entry.slot === slot && entry.winner);
-    const publicWinners = filtered
+    const { data, error } = await supabase.from(TABLE).select("name, phone").eq("slot", slot).eq("winner", true);
+
+    if (error) return NextResponse.json({ error: "Failed to load winners" }, { status: 500 });
+
+    const publicWinners = (data ?? [])
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name, "ko"))
       .map((entry) => ({ name: entry.name, phoneDisplay: publicPhone(entry.phone) }));
+
     return NextResponse.json({ winners: publicWinners });
   }
 
   if (slot) {
-    const filtered = entries.filter((entry) => entry.slot === slot);
-    return NextResponse.json({ count: filtered.length });
+    const { count, error } = await supabase.from(TABLE).select("id", { count: "exact", head: true }).eq("slot", slot);
+
+    if (error) return NextResponse.json({ error: "Failed to load count" }, { status: 500 });
+    return NextResponse.json({ count: count ?? 0 });
   }
 
-  return NextResponse.json({ count: entries.length });
+  const { count, error } = await supabase.from(TABLE).select("id", { count: "exact", head: true });
+  if (error) return NextResponse.json({ error: "Failed to load count" }, { status: 500 });
+
+  return NextResponse.json({ count: count ?? 0 });
 }
 
 export async function POST(req: NextRequest) {
@@ -92,23 +103,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "전화번호는 숫자 11자리 또는 뒤 4자리만 입력해 주세요." }, { status: 400 });
   }
 
-  const entries = await readEntries();
-    const normalizedName = String(name).trim();
-    const exists = entries.find(
-      (entry) => entry.slot === slot && entry.phone === cleaned && entry.name === normalizedName
-    );
-    if (exists) return NextResponse.json({ error: "이미 동일한 이름과 전화번호로 신청하셨습니다." }, { status: 409 });
+  const supabase = getAdminClientOrResponse();
+  if (supabase instanceof NextResponse) return supabase;
 
-  const entry: Entry = {
-    id: Date.now(),
-      name: normalizedName,
+  const normalizedName = String(name).trim();
+  const normalizedSlot = String(slot);
+
+  const { data: existing, error: existsError } = await supabase
+    .from(TABLE)
+    .select("id")
+    .eq("slot", normalizedSlot)
+    .eq("phone", cleaned)
+    .eq("name", normalizedName)
+    .limit(1);
+
+  if (existsError) return NextResponse.json({ error: "신청 확인 중 오류가 발생했습니다." }, { status: 500 });
+  if (existing && existing.length > 0) {
+    return NextResponse.json({ error: "이미 동일한 이름과 전화번호로 신청하셨습니다." }, { status: 409 });
+  }
+
+  const { error } = await supabase.from(TABLE).insert({
+    name: normalizedName,
     phone: cleaned,
-    slot: String(slot),
-    createdAt: new Date().toISOString(),
-  };
+    slot: normalizedSlot,
+    winner: false,
+  });
 
-  entries.push(entry);
-  await writeEntries(entries);
+  if (error) return NextResponse.json({ error: "신청 저장 중 오류가 발생했습니다." }, { status: 500 });
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 
@@ -130,15 +151,28 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "전화번호는 숫자 11자리 또는 뒤 4자리만 입력해 주세요." }, { status: 400 });
   }
 
-  const entries = await readEntries();
-  const entry = entries.find((item) => item.id === id);
-  if (!entry) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+  const supabase = getAdminClientOrResponse();
+  if (supabase instanceof NextResponse) return supabase;
 
-  entry.name = String(name).trim();
-  entry.phone = cleaned;
-  await writeEntries(entries);
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ name: String(name).trim(), phone: cleaned })
+    .eq("id", id)
+    .select("id, name, phone, created_at")
+    .maybeSingle();
 
-  return NextResponse.json({ ok: true, entry: { id: entry.id, name: entry.name, phone: entry.phone, createdAt: entry.createdAt } });
+  if (error) return NextResponse.json({ error: "수정 중 오류가 발생했습니다." }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+
+  return NextResponse.json({
+    ok: true,
+    entry: {
+      id: data.id,
+      name: data.name,
+      phone: data.phone,
+      createdAt: data.created_at,
+    },
+  });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -151,21 +185,21 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const entries = await readEntries();
+  const supabase = getAdminClientOrResponse();
+  if (supabase instanceof NextResponse) return supabase;
 
   if (slot) {
-    const filtered = entries.filter((entry) => entry.slot !== slot);
-    await writeEntries(filtered);
-    return NextResponse.json({ ok: true, deleted: entries.length - filtered.length });
+    const { data, error } = await supabase.from(TABLE).delete().eq("slot", slot).select("id");
+    if (error) return NextResponse.json({ error: "전체 삭제 중 오류가 발생했습니다." }, { status: 500 });
+
+    return NextResponse.json({ ok: true, deleted: (data ?? []).length });
   }
 
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const index = entries.findIndex((entry) => entry.id === id);
-  if (index === -1) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-
-  entries.splice(index, 1);
-  await writeEntries(entries);
+  const { data, error } = await supabase.from(TABLE).delete().eq("id", id).select("id");
+  if (error) return NextResponse.json({ error: "삭제 중 오류가 발생했습니다." }, { status: 500 });
+  if (!data || data.length === 0) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }
