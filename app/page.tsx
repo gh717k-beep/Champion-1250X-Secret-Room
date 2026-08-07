@@ -1,8 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, type FormEvent } from "react";
 
 type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
+
+type Winner = {
+  name: string;
+  phoneDisplay: string;
+};
 
 const SLOT_LABELS: Record<Slot, string> = {
   "weekday-16": "평일 16:00",
@@ -19,7 +24,7 @@ export default function Home() {
   const [winnerSlot, setWinnerSlot] = useState<Slot>("weekday-16");
   const [message, setMessage] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
-  const [winners, setWinners] = useState<Array<{ maskedName: string; phoneTail: string }>>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   const [winnerLoading, setWinnerLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -36,11 +41,33 @@ export default function Home() {
   async function fetchCount() {
     try {
       const res = await fetch(`/api/contest?slot=${encodeURIComponent(slot)}`);
-      if (!res.ok) return setCount(null);
+      if (!res.ok) {
+        setCount(null);
+        return;
+      }
+
       const data = await res.json();
       setCount(data.count ?? null);
-    } catch (e) {
+    } catch {
       setCount(null);
+    }
+  }
+
+  async function fetchWinners() {
+    setWinnerLoading(true);
+    try {
+      const res = await fetch(`/api/contest?slot=${encodeURIComponent(winnerSlot)}&winners=true`);
+      if (!res.ok) {
+        setWinners([]);
+        return;
+      }
+
+      const data = await res.json();
+      setWinners(data.winners ?? []);
+    } catch {
+      setWinners([]);
+    } finally {
+      setWinnerLoading(false);
     }
   }
 
@@ -52,6 +79,7 @@ export default function Home() {
     e.preventDefault();
     setMessage(null);
     const cleaned = cleanPhone(phone);
+
     if (!name.trim()) return setMessage("아이 이름을 입력하세요.");
     if (cleaned.length < 8) return setMessage("유효한 전화번호를 입력하세요.");
 
@@ -71,24 +99,10 @@ export default function Home() {
       } else {
         setMessage(data.error || "신청 중 오류가 발생했습니다.");
       }
-    } catch (err) {
+    } catch {
       setMessage("서버와 통신할 수 없습니다.");
     }
     setLoading(false);
-  }
-
-  async function fetchWinners() {
-    setWinnerLoading(true);
-    try {
-      const res = await fetch(`/api/contest?slot=${encodeURIComponent(winnerSlot)}&winners=true`);
-      if (!res.ok) return setWinners([]);
-      const data = await res.json();
-      setWinners(data.winners ?? []);
-    } catch {
-      setWinners([]);
-    } finally {
-      setWinnerLoading(false);
-    }
   }
 
   return (
@@ -112,7 +126,7 @@ export default function Home() {
             </div>
             <div className="info-box">
               <strong>공개</strong>
-              <p>이름 가운데는 모자이크, 전화번호 뒷자리만 공개됩니다.</p>
+              <p>이름은 그대로 공개되며 전화번호는 일부만 표시됩니다.</p>
             </div>
           </div>
         </section>
@@ -146,18 +160,23 @@ export default function Home() {
             </label>
 
             <div className="message-box" style={{ marginBottom: 18 }}>
-              현재 신청자 수: {count === null ? "불러오는 중..." : count}
+              현재 신청 수: {count === null ? "불러오는 중..." : count}
             </div>
 
             <div className="submit-row">
-              <button type="submit" className="button-primary button-large" disabled={loading}>
+              <button type="submit" className="button-primary" disabled={loading}>
                 {loading ? "신청 중..." : "신청하기"}
               </button>
             </div>
           </form>
 
           {message && <div className="message-box">{message}</div>}
+
+          <a href="/contest" className="button-secondary" style={{ marginTop: 24 }}>
+            관리자용 페이지
+          </a>
         </section>
+
         <section className="contest-card">
           <div className="contest-header">
             <h1>당첨자 확인</h1>
@@ -175,10 +194,6 @@ export default function Home() {
             </select>
           </label>
 
-          <div className="message-box" style={{ marginBottom: 18 }}>
-            현재 선택된 시간대 당첨자 수: {winners.length}
-          </div>
-
           {winnerLoading ? (
             <div className="message-box">당첨자 목록을 불러오는 중입니다...</div>
           ) : winners.length === 0 ? (
@@ -187,87 +202,16 @@ export default function Home() {
             <ul>
               {winners.map((winner, index) => (
                 <li key={index} className="result-item">
-                  {winner.maskedName} — {winner.phoneTail}
+                  <div className="winner-display-row">
+                    <span className="entry-text">이름 : {winner.name}</span>
+                    <span className="entry-text">전화번호 : {winner.phoneDisplay}</span>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </section>
-
-        <div className="page-footer-link">
-          <a href="/contest" className="button-secondary button-compact">
-            관리자용 페이지
-          </a>
-        </div>
       </div>
     </main>
-  );
-}
-
-function AdminDraw() {
-  const [slot, setSlot] = useState<Slot>("weekday-16");
-  const [secret, setSecret] = useState("");
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function runDraw(e?: FormEvent) {
-    e?.preventDefault();
-    setLoading(true);
-    setResult(null);
-
-    try {
-      const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      setResult({ ok: res.ok, body: data });
-    } catch (err) {
-      setResult({ ok: false, body: { error: "서버 오류" } });
-    }
-
-    setLoading(false);
-  }
-
-  return (
-    <form className="admin-form" onSubmit={runDraw}>
-      <label className="form-label">
-        <span>시간대 선택</span>
-        <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
-          {Object.entries(SLOT_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="form-label">
-        <span>관리자 비밀키</span>
-        <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="관리자 비밀키" />
-      </label>
-
-      <button type="submit" className="button-secondary" disabled={loading}>
-        {loading ? "추첨 중..." : "추첨 실행"}
-      </button>
-
-      {result && (
-        <div className="result-box">
-          {result.ok ? (
-            <>
-              <div className="result-title">당첨자 목록</div>
-              <ul>
-                {result.body.winners.map((winner: any, index: number) => (
-                  <li key={index} className="result-item">
-                    {winner.maskedName} — {winner.phoneTail}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <div className="error-text">{result.body?.error || "오류가 발생했습니다."}</div>
-          )}
-        </div>
-      )}
-    </form>
   );
 }

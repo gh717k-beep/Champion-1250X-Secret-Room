@@ -109,8 +109,8 @@ function AdminDraw({ secret }: { secret: string }) {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editError, setEditError] = useState("");
+  const [drawMessage, setDrawMessage] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; body: { winners?: Array<{ maskedName: string; phoneTail: string }>; error?: string } } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchCount = async (currentSlot: Slot) => {
@@ -223,21 +223,25 @@ function AdminDraw({ secret }: { secret: string }) {
 
   async function runDraw(e?: FormEvent) {
     e?.preventDefault();
-    setResult(null);
+    setEditError("");
+    setDrawMessage("");
     setLoading(true);
 
     try {
       const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, {
         method: "POST",
       });
-      const data = await res.json();
-      setResult({ ok: res.ok, body: data });
 
-      if (res.ok) {
-        fetchEntries(slot);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setEditError(data?.error || "추첨 실행 중 오류가 발생했습니다.");
+        return;
       }
+
+      fetchEntries(slot);
+      setDrawMessage("추첨 완료! 메인페이지에서 확인해주세요.");
     } catch {
-      setResult({ ok: false, body: { error: "서버와 통신할 수 없습니다." } });
+      setEditError("서버와 통신할 수 없습니다.");
     } finally {
       setLoading(false);
     }
@@ -318,24 +322,7 @@ function AdminDraw({ secret }: { secret: string }) {
         {loading ? "추첨 중..." : "추첨 실행"}
       </button>
 
-      {result ? (
-        <div className="result-box">
-          {result.ok ? (
-            <>
-              <div className="result-title">당첨자 목록</div>
-              <ul>
-                {(result.body.winners ?? []).map((winner, index) => (
-                  <li key={index} className="result-item">
-                    {winner.maskedName} - {winner.phoneTail}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <div className="error-text">{result.body.error ?? "오류가 발생했습니다."}</div>
-          )}
-        </div>
-      ) : null}
+      {drawMessage ? <div className="message-box">{drawMessage}</div> : null}
     </form>
   );
 }

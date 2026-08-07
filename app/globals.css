@@ -281,6 +281,13 @@ select {
   justify-content: space-between;
 }
 
+.winner-display-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
 .entry-info-group,
 .entry-side-group {
   display: flex;

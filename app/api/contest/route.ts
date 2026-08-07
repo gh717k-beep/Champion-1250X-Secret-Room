@@ -40,15 +40,9 @@ async function writeEntries(items: Entry[]) {
   await fs.writeFile(ENTRIES_FILE, JSON.stringify(items, null, 2));
 }
 
-function maskName(name: string) {
-  if (!name) return "";
-  const chars = Array.from(name);
-  if (chars.length <= 2) return chars[0] + "*";
-  return chars[0] + "*".repeat(Math.max(1, chars.length - 2)) + chars[chars.length - 1];
-}
-
-function tailPhone(phone: string) {
+function publicPhone(phone: string) {
   const digits = phone.replace(/[^0-9]/g, "");
+  if (digits.length === 11) return digits.slice(-4);
   if (digits.length <= 4) return digits;
   return digits.slice(-4);
 }
@@ -71,7 +65,10 @@ export async function GET(req: NextRequest) {
 
   if (slot && winners === "true") {
     const filtered = entries.filter((entry) => entry.slot === slot && entry.winner);
-    const publicWinners = filtered.map((entry) => ({ maskedName: maskName(entry.name), phoneTail: tailPhone(entry.phone) }));
+    const publicWinners = filtered
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+      .map((entry) => ({ name: entry.name, phoneDisplay: publicPhone(entry.phone) }));
     return NextResponse.json({ winners: publicWinners });
   }
 
