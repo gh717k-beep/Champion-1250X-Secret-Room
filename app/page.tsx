@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type Slot = "weekday-16" | "weekday-18" | "weekend-12" | "weekend-14" | "weekend-16";
 
@@ -12,7 +12,7 @@ const SLOT_LABELS: Record<Slot, string> = {
   "weekend-16": "주말 16:00",
 };
 
-export default function ContestPage() {
+export default function Home() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [slot, setSlot] = useState<Slot>("weekday-16");
@@ -40,7 +40,7 @@ export default function ContestPage() {
     return input.replace(/[^0-9]/g, "");
   }
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
     const cleaned = cleanPhone(phone);
@@ -70,48 +70,76 @@ export default function ContestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
-      <div className="mx-auto max-w-2xl rounded-xl border bg-white p-6 shadow">
-        <h1 className="text-2xl font-semibold">비밀의 방 — 응모 페이지</h1>
-        <p className="mt-2 text-sm text-slate-600">전화번호당 1회 응모 가능. 당첨자 공개 시 아이 이름 가운데는 모자이크, 보호자 전화번호 뒷자리만 공개됩니다.</p>
-
-        <form className="mt-4 flex flex-col gap-3" onSubmit={submit}>
-          <label className="flex flex-col">
-            <span className="text-sm">아이 이름</span>
-            <input className="mt-1 rounded border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-
-          <label className="flex flex-col">
-            <span className="text-sm">보호자 전화번호</span>
-            <input className="mt-1 rounded border px-3 py-2" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="숫자만 입력" />
-          </label>
-
-          <label className="flex flex-col">
-            <span className="text-sm">응모 시간대 선택</span>
-            <select className="mt-1 rounded border px-3 py-2" value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
-              {Object.entries(SLOT_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-600">현재 응모 수: {count === null ? "불러오는 중..." : count}</div>
-            <button disabled={loading} className="ml-4 rounded bg-cyan-600 px-4 py-2 text-white">
-              {loading ? "응모중..." : "응모하기"}
-            </button>
+    <main className="app-shell">
+      <div className="hero-decor" />
+      <div className="page-content">
+        <section className="hero-card">
+          <div className="hero-title">
+            <p className="tagline">Champion 1250X</p>
+            <h1>비밀의 방</h1>
           </div>
-        </form>
 
-        {message && <div className="mt-4 rounded border px-4 py-3 text-sm">{message}</div>}
+          <div className="info-grid">
+            <div className="info-box">
+              <strong>안내</strong>
+              <p>응모는 보호자 전화번호 당 1회만 가능합니다.</p>
+            </div>
+            <div className="info-box">
+              <strong>추첨</strong>
+              <p>응모 수가 10명을 넘으면 무작위로 10명을 선정합니다.</p>
+            </div>
+            <div className="info-box">
+              <strong>공개</strong>
+              <p>이름 가운데는 모자이크, 전화번호 뒷자리만 공개됩니다.</p>
+            </div>
+          </div>
+        </section>
 
-        <div className="mt-6 border-t pt-4 text-sm text-slate-700">
-          <h2 className="font-medium">관리자용(간단)</h2>
-          <p className="mt-2">관리자는 아래에서 비밀키로 추첨을 실행할 수 있습니다. 배포시 `VERCEL_CONTEST_SECRET` 환경변수를 설정하세요.</p>
-          <AdminDraw />
-        </div>
+        <section className="contest-card">
+          <div className="contest-header">
+            <h1>응모하기</h1>
+            <p>아이 이름과 보호자 전화번호를 입력하고 원하는 시간대를 선택하세요.</p>
+          </div>
+
+          <form className="contest-form" onSubmit={submit}>
+            <label className="form-label">
+              <span>아이 이름</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 김철수" />
+            </label>
+
+            <label className="form-label">
+              <span>보호자 전화번호</span>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="숫자만 입력" />
+            </label>
+
+            <label className="form-label">
+              <span>응모 시간대 선택</span>
+              <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
+                {Object.entries(SLOT_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="message-box" style={{ marginBottom: 18 }}>
+              현재 응모 수: {count === null ? "불러오는 중..." : count}
+            </div>
+
+            <div className="submit-row">
+              <button type="submit" className="button-primary" disabled={loading}>
+                {loading ? "응모 중..." : "응모하기"}
+              </button>
+            </div>
+          </form>
+
+          {message && <div className="message-box">{message}</div>}
+
+          <a href="/contest" className="button-secondary" style={{ marginTop: 24 }}>
+            관리자용 페이지
+          </a>
+        </section>
       </div>
     </main>
   );
@@ -123,51 +151,61 @@ function AdminDraw() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  async function runDraw(e?: React.FormEvent) {
+  async function runDraw(e?: FormEvent) {
     e?.preventDefault();
     setLoading(true);
     setResult(null);
+
     try {
-      const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, { method: "POST" });
+      const res = await fetch(`/api/contest/draw?slot=${encodeURIComponent(slot)}&secret=${encodeURIComponent(secret)}`, {
+        method: "POST",
+      });
       const data = await res.json();
       setResult({ ok: res.ok, body: data });
     } catch (err) {
       setResult({ ok: false, body: { error: "서버 오류" } });
     }
+
     setLoading(false);
   }
 
   return (
-    <form className="mt-3 flex flex-col gap-2" onSubmit={runDraw}>
-      <select className="rounded border px-3 py-2" value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
-        {Object.entries(SLOT_LABELS).map(([k, v]) => (
-          <option key={k} value={k}>
-            {v}
-          </option>
-        ))}
-      </select>
-      <input className="rounded border px-3 py-2" placeholder="관리자 비밀키(환경변수 없으면 빈칸 허용)" value={secret} onChange={(e) => setSecret(e.target.value)} />
-      <div className="flex items-center gap-2">
-        <button type="submit" disabled={loading} className="rounded bg-amber-600 px-3 py-2 text-white">
-          {loading ? "추첨중..." : "추첨 실행"}
-        </button>
-      </div>
+    <form className="admin-form" onSubmit={runDraw}>
+      <label className="form-label">
+        <span>시간대 선택</span>
+        <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
+          {Object.entries(SLOT_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="form-label">
+        <span>관리자 비밀키</span>
+        <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="관리자 비밀키" />
+      </label>
+
+      <button type="submit" className="button-secondary" disabled={loading}>
+        {loading ? "추첨 중..." : "추첨 실행"}
+      </button>
 
       {result && (
-        <div className="mt-3">
+        <div className="result-box">
           {result.ok ? (
-            <div>
-              <div className="text-sm">당첨자 목록:</div>
-              <ul className="mt-2 list-disc pl-5">
-                {result.body.winners.map((w: any, i: number) => (
-                  <li key={i} className="text-sm">
-                    {w.maskedName} — {w.phoneTail}
+            <>
+              <div className="result-title">당첨자 목록</div>
+              <ul>
+                {result.body.winners.map((winner: any, index: number) => (
+                  <li key={index} className="result-item">
+                    {winner.maskedName} — {winner.phoneTail}
                   </li>
                 ))}
               </ul>
-            </div>
+            </>
           ) : (
-            <div className="text-sm text-red-600">{result.body?.error || "오류"}</div>
+            <div className="error-text">{result.body?.error || "오류가 발생했습니다."}</div>
           )}
         </div>
       )}

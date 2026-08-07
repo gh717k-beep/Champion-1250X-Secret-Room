@@ -93,9 +93,9 @@ export async function POST_DRAW(req: NextRequest) {
   const slot = url.searchParams.get("slot");
   const secret = url.searchParams.get("secret") || "";
 
-  const envSecret = process.env.VERCEL_CONTEST_SECRET || "";
-  if (envSecret && secret !== envSecret) {
-    return NextResponse.json({ error: "Unauthorized (invalid secret)" }, { status: 401 });
+  const ADMIN_PASSWORD = "X0521";
+  if (secret.trim().toLowerCase() !== ADMIN_PASSWORD.toLowerCase()) {
+    return NextResponse.json({ error: "비밀번호를 확인해 주세요." }, { status: 401 });
   }
 
   if (!slot) return NextResponse.json({ error: "slot required" }, { status: 400 });

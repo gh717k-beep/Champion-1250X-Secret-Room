@@ -1,15 +1,9 @@
-@import "tailwindcss";
-
-:root {
+﻿:root {
   --background: #020617;
-  --foreground: #f8fafc;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --surface: rgba(15, 23, 42, 0.92);
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+  --accent: #2dd4bf;
 }
 
 * {
@@ -17,13 +11,282 @@
 }
 
 html {
-  background: #020617;
+  min-height: 100%;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 24%), radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.16), transparent 22%), linear-gradient(180deg, #0f172a 0%, #0b1120 60%, #04060d 100%);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #0b1120;
+  color: #ffffff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px 16px 32px;
+  position: relative;
+}
+
+.hero-decor {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 24%), radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 20%);
+}
+
+.page-content {
+  position: relative;
+  margin: 0 auto;
+  max-width: 1100px;
+  display: grid;
+  gap: 24px;
+}
+
+.hero-card,
+.feature-card,
+.contest-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 32px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  color: #ffffff;
+}
+
+.hero-title,
+.contest-header {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.tagline {
+  color: var(--accent);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.hero-card h1,
+.contest-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 2.75vw, 3.5rem);
+  line-height: 1.05;
+  color: #ffffff;
+}
+
+.hero-description,
+.feature-title,
+.contest-header p,
+.link-card p,
+.admin-panel p {
+  margin: 0;
+  color: #ffffff;
+  line-height: 1.75;
+}
+
+.info-grid,
+.tip-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .info-grid,
+  .tip-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.info-box,
+.tip-card,
+.result-item {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(21, 30, 54, 0.8);
+  border-radius: 24px;
+  padding: 20px;
+  color: #ffffff;
+}
+
+.info-box strong {
+  display: block;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.feature-card {
+  border-radius: 32px;
+}
+
+.feature-header,
+.submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.feature-title {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.link-card,
+.admin-panel,
+.result-box {
+  margin-top: 24px;
+  border: 1px solid var(--surface-border);
+  border-radius: 28px;
+  background: rgba(15, 23, 42, 0.82);
+  padding: 20px;
+}
+
+.link-card p,
+.admin-panel p {
+  margin: 0;
+  color: #ffffff;
+}
+
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0 20px;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  color: #ffffff;
+}
+
+.button-primary {
+  background: var(--accent);
+}
+
+.button-secondary {
+  background: #0f172a;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+}
+
+.button-primary:hover,
+.button-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.button-primary:disabled,
+.button-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.contest-form,
+.admin-form {
+  display: grid;
+  gap: 18px;
+}
+
+.form-label {
+  display: grid;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.form-label span {
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.form-label input,
+.form-label select {
+  width: 100%;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 16px 18px;
+  background: rgba(21, 30, 54, 0.84);
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.form-label input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.form-label select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #ffffff 50%), linear-gradient(135deg, #ffffff 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.form-label input:focus,
+.form-label select:focus {
+  border-color: rgba(45, 212, 191, 0.9);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.12);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.message-box,
+.error-text {
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  background: rgba(45, 212, 191, 0.08);
+  color: #ffffff;
+}
+
+.admin-panel h2,
+.result-title {
+  margin: 0 0 12px;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.result-item {
+  list-style: none;
+  padding: 14px 16px;
+  color: #ffffff;
+}
+
+@media (max-width: 720px) {
+  .page-content {
+    gap: 18px;
+  }
+
+  .hero-card,
+  .feature-card,
+  .contest-card {
+    padding: 22px;
+  }
+
+  .feature-header,
+  .submit-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button-primary,
+  .button-secondary {
+    width: 100%;
+  }
 }
