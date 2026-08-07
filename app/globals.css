@@ -315,6 +315,27 @@ select {
   white-space: nowrap;
 }
 
+.slot-settings-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.slot-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(21, 30, 54, 0.62);
+  padding: 10px 12px;
+}
+
+.slot-setting-row .button-secondary {
+  min-height: 38px;
+  padding: 0 14px;
+}
+
 .result-item {
   list-style: none;
   padding: 14px 16px;
@@ -433,7 +454,8 @@ select {
   }
 
   .entry-side-group .button-secondary,
-  .entry-edit-row .button-secondary {
+  .entry-edit-row .button-secondary,
+  .slot-setting-row .button-secondary {
     width: auto;
     min-width: 72px;
   }

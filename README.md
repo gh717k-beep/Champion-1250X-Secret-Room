@@ -32,6 +32,20 @@ create table if not exists public.contest_entries (
 
 create unique index if not exists contest_entries_slot_name_phone_idx
 	on public.contest_entries (slot, name, phone);
+
+create table if not exists public.contest_slot_settings (
+	slot text primary key,
+	is_open boolean not null default true,
+	updated_at timestamptz not null default now()
+);
+
+insert into public.contest_slot_settings (slot, is_open)
+values
+	('12:00', true),
+	('14:00', true),
+	('16:00', true),
+	('18:00', true)
+on conflict (slot) do nothing;
 ```
 
 ### 2) 환경변수 설정

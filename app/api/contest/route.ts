@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ADMIN_PASSWORD = "X0521";
 const TABLE = "contest_entries";
+const SLOT_SETTINGS_TABLE = "contest_slot_settings";
 
 type ContestRow = {
   id: number;
@@ -108,6 +109,23 @@ export async function POST(req: NextRequest) {
 
   const normalizedName = String(name).trim();
   const normalizedSlot = String(slot);
+
+  const { data: slotSetting, error: slotError } = await supabase
+    .from(SLOT_SETTINGS_TABLE)
+    .select("is_open")
+    .eq("slot", normalizedSlot)
+    .maybeSingle();
+
+  if (slotError) {
+    const code = (slotError as { code?: string }).code;
+    if (code !== "42P01") {
+      return NextResponse.json({ error: "신청 가능 시간 확인 중 오류가 발생했습니다." }, { status: 500 });
+    }
+  }
+
+  if (slotSetting && slotSetting.is_open === false) {
+    return NextResponse.json({ error: "해당 시간대 신청이 잠겨있습니다." }, { status: 423 });
+  }
 
   const { data: existing, error: existsError } = await supabase
     .from(TABLE)

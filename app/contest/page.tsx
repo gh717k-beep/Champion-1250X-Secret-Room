@@ -11,6 +11,11 @@ type Entry = {
   createdAt: string;
 };
 
+type SlotSetting = {
+  slot: Slot;
+  isOpen: boolean;
+};
+
 const SLOT_LABELS: Record<Slot, string> = {
   "12:00": "12:00",
   "14:00": "14:00",
@@ -111,6 +116,14 @@ function AdminDraw({ secret }: { secret: string }) {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [slotSettings, setSlotSettings] = useState<Record<Slot, boolean>>({
+    "12:00": true,
+    "14:00": true,
+    "16:00": true,
+    "18:00": true,
+  });
+  const [slotSettingsLoading, setSlotSettingsLoading] = useState(false);
+  const [slotSettingsSaving, setSlotSettingsSaving] = useState(false);
 
   const fetchCount = async (currentSlot: Slot) => {
     try {
@@ -144,10 +157,66 @@ function AdminDraw({ secret }: { secret: string }) {
     }
   };
 
+  const fetchSlotSettings = async () => {
+    setSlotSettingsLoading(true);
+    try {
+      const res = await fetch("/api/contest/slots");
+      if (!res.ok) {
+        setEditError("시간대 신청 설정을 불러오지 못했습니다.");
+        return;
+      }
+
+      const data = await res.json();
+      const nextMap: Record<Slot, boolean> = {
+        "12:00": true,
+        "14:00": true,
+        "16:00": true,
+        "18:00": true,
+      };
+
+      for (const row of (data.slots ?? []) as SlotSetting[]) {
+        nextMap[row.slot] = row.isOpen;
+      }
+      setSlotSettings(nextMap);
+    } catch {
+      setEditError("시간대 신청 설정을 불러오지 못했습니다.");
+    } finally {
+      setSlotSettingsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCount(slot);
     fetchEntries(slot);
   }, [slot, secret]);
+
+  useEffect(() => {
+    fetchSlotSettings();
+  }, []);
+
+  async function updateSlotSetting(targetSlot: Slot, isOpen: boolean) {
+    setEditError("");
+    setSlotSettingsSaving(true);
+    try {
+      const res = await fetch(`/api/contest/slots?secret=${encodeURIComponent(secret)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot: targetSlot, isOpen }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setEditError(data?.error || "시간대 설정 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      setSlotSettings((prev) => ({ ...prev, [targetSlot]: isOpen }));
+    } catch {
+      setEditError("시간대 설정 저장 중 오류가 발생했습니다.");
+    } finally {
+      setSlotSettingsSaving(false);
+    }
+  }
 
   function startEditing(entry: Entry) {
     setEditingId(entry.id);
@@ -279,6 +348,29 @@ function AdminDraw({ secret }: { secret: string }) {
 
   return (
     <form className="admin-form" onSubmit={runDraw}>
+      <div className="result-box">
+        <div className="result-title">신청 접수 설정</div>
+        <div className="slot-settings-grid">
+          {Object.entries(SLOT_LABELS).map(([key, label]) => {
+            const slotKey = key as Slot;
+            const isOpen = slotSettings[slotKey];
+            return (
+              <div className="slot-setting-row" key={slotKey}>
+                <span className="entry-text">{label}</span>
+                <button
+                  type="button"
+                  className="button-secondary"
+                  disabled={slotSettingsSaving || slotSettingsLoading}
+                  onClick={() => updateSlotSetting(slotKey, !isOpen)}
+                >
+                  {isOpen ? "신청 받는 중" : "신청 잠김"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <label className="form-label">
         <span>시간대 선택</span>
         <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>

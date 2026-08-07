@@ -9,6 +9,11 @@ type Winner = {
   phoneDisplay: string;
 };
 
+type SlotSetting = {
+  slot: Slot;
+  isOpen: boolean;
+};
+
 const SLOT_LABELS: Record<Slot, string> = {
   "12:00": "12:00",
   "14:00": "14:00",
@@ -26,6 +31,12 @@ export default function Home() {
   const [winners, setWinners] = useState<Winner[]>([]);
   const [winnerLoading, setWinnerLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [slotOpenMap, setSlotOpenMap] = useState<Record<Slot, boolean>>({
+    "12:00": true,
+    "14:00": true,
+    "16:00": true,
+    "18:00": true,
+  });
 
   useEffect(() => {
     fetchCount();
@@ -36,6 +47,10 @@ export default function Home() {
     fetchWinners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winnerSlot]);
+
+  useEffect(() => {
+    fetchSlotSettings();
+  }, []);
 
   async function fetchCount() {
     try {
@@ -70,6 +85,29 @@ export default function Home() {
     }
   }
 
+  async function fetchSlotSettings() {
+    try {
+      const res = await fetch("/api/contest/slots");
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const nextMap: Record<Slot, boolean> = {
+        "12:00": true,
+        "14:00": true,
+        "16:00": true,
+        "18:00": true,
+      };
+
+      for (const row of (data.slots ?? []) as SlotSetting[]) {
+        nextMap[row.slot] = row.isOpen;
+      }
+
+      setSlotOpenMap(nextMap);
+    } catch {
+      // Keep all slots open by default when settings cannot be fetched.
+    }
+  }
+
   function cleanPhone(input: string) {
     return input.replace(/[^0-9]/g, "");
   }
@@ -82,6 +120,9 @@ export default function Home() {
     if (!name.trim()) return setMessage("아이 이름을 입력하세요.");
     if (cleaned.length !== 11 && cleaned.length !== 4) {
       return setMessage("보호자 전화번호는 숫자 11자리 또는 뒤 4자리만 입력하세요.");
+    }
+    if (!slotOpenMap[slot]) {
+      return setMessage("해당 시간대 신청이 잠겨있습니다.");
     }
 
     setLoading(true);
@@ -163,7 +204,7 @@ export default function Home() {
               <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
                 {Object.entries(SLOT_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>
-                    {label}
+                    {slotOpenMap[key as Slot] ? label : `${label} (신청 잠김)`}
                   </option>
                 ))}
               </select>
