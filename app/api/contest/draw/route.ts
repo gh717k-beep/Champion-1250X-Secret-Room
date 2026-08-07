@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ADMIN_PASSWORD = "X0521";
 const TABLE = "contest_entries";
+const LOCK_NAME = "__SLOT_LOCK__";
 
 type ContestRow = {
   id: number;
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
     .from(TABLE)
     .select("id, name, phone, slot")
     .eq("slot", slot)
+    .neq("name", LOCK_NAME)
     .order("created_at", { ascending: true });
 
   if (poolError) return NextResponse.json({ error: "신청자 조회 중 오류가 발생했습니다." }, { status: 500 });
@@ -67,7 +69,11 @@ export async function POST(req: NextRequest) {
     winners.push(...shuffled.slice(0, 10));
   }
 
-  const { error: resetError } = await supabase.from(TABLE).update({ winner: false, drawn_at: null }).eq("slot", slot);
+  const { error: resetError } = await supabase
+    .from(TABLE)
+    .update({ winner: false, drawn_at: null })
+    .eq("slot", slot)
+    .neq("name", LOCK_NAME);
   if (resetError) return NextResponse.json({ error: "추첨 초기화 중 오류가 발생했습니다." }, { status: 500 });
 
   if (winners.length > 0) {

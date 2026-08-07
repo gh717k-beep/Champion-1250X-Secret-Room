@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ADMIN_PASSWORD = "X0521";
 const TABLE = "contest_entries";
-const SLOT_SETTINGS_TABLE = "contest_slot_settings";
+const LOCK_NAME = "__SLOT_LOCK__";
+const LOCK_PHONE = "0000";
 
 type ContestRow = {
   id: number;
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
       .from(TABLE)
       .select("id, name, phone, created_at")
       .eq("slot", slot)
+      .neq("name", LOCK_NAME)
       .order("created_at", { ascending: true });
 
     if (error) return NextResponse.json({ error: "Failed to load entries" }, { status: 500 });
@@ -67,7 +69,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (slot && winners === "true") {
-    const { data, error } = await supabase.from(TABLE).select("name, phone").eq("slot", slot).eq("winner", true);
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("name, phone")
+      .eq("slot", slot)
+      .eq("winner", true)
+      .neq("name", LOCK_NAME);
 
     if (error) return NextResponse.json({ error: "Failed to load winners" }, { status: 500 });
 
@@ -80,13 +87,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (slot) {
-    const { count, error } = await supabase.from(TABLE).select("id", { count: "exact", head: true }).eq("slot", slot);
+    const { count, error } = await supabase
+      .from(TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("slot", slot)
+      .neq("name", LOCK_NAME);
 
     if (error) return NextResponse.json({ error: "Failed to load count" }, { status: 500 });
     return NextResponse.json({ count: count ?? 0 });
   }
 
-  const { count, error } = await supabase.from(TABLE).select("id", { count: "exact", head: true });
+  const { count, error } = await supabase.from(TABLE).select("id", { count: "exact", head: true }).neq("name", LOCK_NAME);
   if (error) return NextResponse.json({ error: "Failed to load count" }, { status: 500 });
 
   return NextResponse.json({ count: count ?? 0 });
@@ -110,20 +121,19 @@ export async function POST(req: NextRequest) {
   const normalizedName = String(name).trim();
   const normalizedSlot = String(slot);
 
-  const { data: slotSetting, error: slotError } = await supabase
-    .from(SLOT_SETTINGS_TABLE)
-    .select("is_open")
+  const { data: lockRow, error: lockError } = await supabase
+    .from(TABLE)
+    .select("id")
     .eq("slot", normalizedSlot)
+    .eq("name", LOCK_NAME)
+    .eq("phone", LOCK_PHONE)
     .maybeSingle();
 
-  if (slotError) {
-    const code = (slotError as { code?: string }).code;
-    if (code !== "42P01") {
-      return NextResponse.json({ error: "신청 가능 시간 확인 중 오류가 발생했습니다." }, { status: 500 });
-    }
+  if (lockError) {
+    return NextResponse.json({ error: "신청 가능 시간 확인 중 오류가 발생했습니다." }, { status: 500 });
   }
 
-  if (slotSetting && slotSetting.is_open === false) {
+  if (lockRow) {
     return NextResponse.json({ error: "해당 시간대 신청이 잠겨있습니다." }, { status: 423 });
   }
 
@@ -207,7 +217,7 @@ export async function DELETE(req: NextRequest) {
   if (supabase instanceof NextResponse) return supabase;
 
   if (slot) {
-    const { data, error } = await supabase.from(TABLE).delete().eq("slot", slot).select("id");
+    const { data, error } = await supabase.from(TABLE).delete().eq("slot", slot).neq("name", LOCK_NAME).select("id");
     if (error) return NextResponse.json({ error: "전체 삭제 중 오류가 발생했습니다." }, { status: 500 });
 
     return NextResponse.json({ ok: true, deleted: (data ?? []).length });

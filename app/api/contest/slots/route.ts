@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const ADMIN_PASSWORD = "X0521";
-const TABLE = "contest_slot_settings";
+const TABLE = "contest_entries";
 const SLOT_VALUES = ["12:00", "14:00", "16:00", "18:00"] as const;
+const LOCK_NAME = "__SLOT_LOCK__";
+const LOCK_PHONE = "0000";
 
 type Slot = (typeof SLOT_VALUES)[number];
 
 type SlotRow = {
   slot: Slot;
-  is_open: boolean;
 };
 
 function getAdminClientOrResponse() {
@@ -24,20 +25,21 @@ function getAdminClientOrResponse() {
 }
 
 function withDefaults(rows: SlotRow[] | null) {
-  const map = new Map((rows ?? []).map((row) => [row.slot, row.is_open]));
-  return SLOT_VALUES.map((slot) => ({ slot, isOpen: map.get(slot) ?? true }));
+  const locked = new Set((rows ?? []).map((row) => row.slot));
+  return SLOT_VALUES.map((slot) => ({ slot, isOpen: !locked.has(slot) }));
 }
 
 export async function GET() {
   const supabase = getAdminClientOrResponse();
   if (supabase instanceof NextResponse) return supabase;
 
-  const { data, error } = await supabase.from(TABLE).select("slot, is_open").in("slot", SLOT_VALUES);
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("slot")
+    .eq("name", LOCK_NAME)
+    .eq("phone", LOCK_PHONE)
+    .in("slot", SLOT_VALUES);
   if (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "42P01") {
-      return NextResponse.json({ slots: withDefaults(null) });
-    }
     return NextResponse.json({ error: "시간대 설정을 불러오지 못했습니다." }, { status: 500 });
   }
 
@@ -67,16 +69,31 @@ export async function PATCH(req: NextRequest) {
   const supabase = getAdminClientOrResponse();
   if (supabase instanceof NextResponse) return supabase;
 
-  const { error } = await supabase.from(TABLE).upsert({ slot, is_open: isOpen }, { onConflict: "slot" });
-  if (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "42P01") {
-      return NextResponse.json(
-        { error: "contest_slot_settings 테이블이 없습니다. README의 SQL을 먼저 실행해 주세요." },
-        { status: 500 }
-      );
+  if (isOpen) {
+    const { error } = await supabase
+      .from(TABLE)
+      .delete()
+      .eq("slot", slot)
+      .eq("name", LOCK_NAME)
+      .eq("phone", LOCK_PHONE);
+
+    if (error) {
+      return NextResponse.json({ error: "시간대 설정 저장 중 오류가 발생했습니다." }, { status: 500 });
     }
-    return NextResponse.json({ error: "시간대 설정 저장 중 오류가 발생했습니다." }, { status: 500 });
+  } else {
+    const { error } = await supabase.from(TABLE).upsert(
+      {
+        slot,
+        name: LOCK_NAME,
+        phone: LOCK_PHONE,
+        winner: false,
+      },
+      { onConflict: "slot,name,phone" }
+    );
+
+    if (error) {
+      return NextResponse.json({ error: "시간대 설정 저장 중 오류가 발생했습니다." }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });
