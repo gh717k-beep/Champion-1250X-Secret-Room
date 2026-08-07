@@ -12,7 +12,26 @@ const SLOT_LABELS: Record<Slot, string> = {
   "weekend-16": "주말 16:00",
 };
 
+const ADMIN_PASSWORD = "X0521";
+
 export default function ContestPage() {
+  const [password, setPassword] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  function handleLogin(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const normalized = password.trim().toLowerCase();
+    if (normalized === ADMIN_PASSWORD.toLowerCase()) {
+      setAuthenticated(true);
+      setAuthError("");
+      setPassword("");
+      return;
+    }
+
+    setAuthError("비밀번호가 올바르지 않습니다. 다시 시도해 주세요.");
+  }
+
   return (
     <main className="app-shell">
       <div className="hero-decor" />
@@ -23,10 +42,31 @@ export default function ContestPage() {
             <h1>관리자용 페이지</h1>
           </div>
 
-          <div className="admin-panel">
-            <h2>추첨 실행</h2>
-            <AdminDraw />
-          </div>
+          {!authenticated ? (
+            <div className="admin-login-card">
+              <p className="login-note">관리자 비밀번호를 입력해야 관리자 UI가 표시됩니다.</p>
+              <form className="login-form" onSubmit={handleLogin}>
+                <label className="form-label">
+                  <span>관리자 비밀번호</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="비밀번호를 입력하세요"
+                  />
+                </label>
+                <button type="submit" className="button-primary">
+                  확인
+                </button>
+                {authError ? <div className="error-text">{authError}</div> : null}
+              </form>
+            </div>
+          ) : (
+            <div className="admin-panel">
+              <h2>추첨 실행</h2>
+              <AdminDraw secret={ADMIN_PASSWORD} />
+            </div>
+          )}
 
           <div style={{ marginTop: 24 }}>
             <a href="/" className="button-secondary">
@@ -39,9 +79,8 @@ export default function ContestPage() {
   );
 }
 
-function AdminDraw() {
+function AdminDraw({ secret }: { secret: string }) {
   const [slot, setSlot] = useState<Slot>("weekday-16");
-  const [secret, setSecret] = useState("");
   const [count, setCount] = useState<number | null>(null);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -100,11 +139,6 @@ function AdminDraw() {
       <div className="message-box" style={{ marginBottom: 18 }}>
         현재 응모 수: {count === null ? "불러오는 중..." : count}
       </div>
-
-      <label className="form-label">
-        <span>관리자 비밀번호</span>
-        <input value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="관리자 비밀번호" />
-      </label>
 
       <button type="submit" className="button-secondary" disabled={loading}>
         {loading ? "추첨 중..." : "추첨 실행"}
